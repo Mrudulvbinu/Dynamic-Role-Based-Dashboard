@@ -1,15 +1,6 @@
-import { 
-  Card, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableRow, 
-  Typography,
-  Box
-} from '@mui/material';
+import { Card, Table, TableBody, TableCell, TableHead, 
+  TableRow, Typography, Box } from '@mui/material';
 
-// Default activities if none are provided
 const defaultActivities = [
   { id: 1, action: 'Patient Check-in', time: '10:30 AM', staff: 'Dr. Smith' },
   { id: 2, action: 'Lab Results', time: '11:15 AM', staff: 'Nurse Jane' },

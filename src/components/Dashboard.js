@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -16,22 +16,36 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const Dashboard = ({ role, onLogout }) => {
   const allWidgets = useRolePermissions(role);
-  const [selectedWidgets, setSelectedWidgets] = useState(() => {
-    const saved = localStorage.getItem(`selectedWidgets-${role}`);
-    return saved ? JSON.parse(saved) : allWidgets.map(w => w.id);
-  });
-  const [layouts, setLayouts] = useState(() => {
-    const saved = localStorage.getItem(`dashboardLayout-${role}`);
-    return saved ? JSON.parse(saved) : {
-      lg: allWidgets.map((widget, index) => ({
-        i: widget.id.toString(),
-        x: (index % 4) * 3,
-        y: Math.floor(index / 4) * 2,
-        w: 3,
-        h: 2,
-      })),
-    };
-  });
+  const [selectedWidgets, setSelectedWidgets] = useState([]);
+  const [layouts, setLayouts] = useState({ lg: [] });
+
+  useEffect(() => {
+    const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
+    const savedLayouts = localStorage.getItem(`dashboardLayout-${role}`);
+    
+    const initialWidgets = savedWidgets 
+      ? JSON.parse(savedWidgets) 
+      : allWidgets.map(w => w.id);
+      
+    const initialLayouts = savedLayouts 
+      ? JSON.parse(savedLayouts)
+      : {
+          lg: allWidgets.map((widget, index) => ({
+            i: widget.id.toString(),
+            x: (index % 2) * 2, 
+            y: Math.floor(index / 2) * 2,
+            w: 4,
+            h: 2,
+            minW: 2,
+            minH: 2,
+            isResizable: true,
+            isDraggable: true
+          }))
+        };
+
+    setSelectedWidgets(initialWidgets);
+    setLayouts(initialLayouts);
+  }, [role, allWidgets]);
 
   const handleToggleWidget = (widgetId) => {
     const newSelection = selectedWidgets.includes(widgetId)
@@ -41,7 +55,7 @@ const Dashboard = ({ role, onLogout }) => {
     localStorage.setItem(`selectedWidgets-${role}`, JSON.stringify(newSelection));
   };
 
-  const handleLayoutChange = (_, allLayouts) => {
+  const handleLayoutChange = (currentLayout, allLayouts) => {
     setLayouts(allLayouts);
     localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify(allLayouts));
   };
@@ -50,39 +64,47 @@ const Dashboard = ({ role, onLogout }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static" color="transparent" elevation={0} sx={{ bgcolor: '#f5f8e5' }}>
+      <AppBar position="static" color="transparent" elevation={0} sx={{ bgcolor: '#000080' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h4" sx={{ 
             fontFamily: '"Poppins", sans-serif',
             fontWeight: 'bold',
-            color: '#008573'
+            color: '#ffffff'
           }}>
             {role.charAt(0).toUpperCase() + role.slice(1)} Dashboard
           </Typography>
-          <Box>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<ExitToApp />}
-              onClick={onLogout}
-              sx={{
-                borderRadius: '20px',
-                textTransform: 'none',
-                fontWeight: 'bold',
-                '&:hover': {
-                  backgroundColor: 'rgba(244, 67, 54, 0.08)'
-                }
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }}}>
-                Logout
-              </Box>
-            </Button>
-          </Box>
+          <Button
+  variant="outlined"
+  color="inherit" // This makes it adapt to dark backgrounds
+  startIcon={<ExitToApp />}
+  onClick={onLogout}
+  sx={{
+    borderRadius: '20px',
+    textTransform: 'none',
+    fontWeight: 'bold',
+    transition: 'all 0.3s ease',
+    transform: 'scale(1)',
+    borderWidth: '2px',
+    borderColor: 'white', // White outline
+    color: 'white', // White text
+    '&:hover': {
+      backgroundColor: 'white',
+      color: 'black',
+      transform: 'scale(1.05)',
+      borderWidth: '2px',
+      borderColor: 'white', // White outline on hover too
+      boxShadow: '0 4px 8px rgba(255, 255, 255, 0.3)' // White shadow
+    }
+  }}
+>
+  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }}}>
+    Logout
+  </Box>
+</Button>
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ p: 3, flex: 1 }}>
+     <Box sx={{ p: 3, flex: 1 }}>
         <ResponsiveGridLayout
           className="layout"
           layouts={layouts}
@@ -90,26 +112,45 @@ const Dashboard = ({ role, onLogout }) => {
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           rowHeight={100}
+          isDraggable={true}
+          isResizable={true}
+          draggableCancel=".non-draggable" 
+          margin={[20, 20]}
+          containerPadding={[0, 20]}
+          compactType={null} 
+          preventCollision={true} 
         >
-        {visibleWidgets.map((widget) => (
-  <div key={widget.id} data-grid={{ x: 0, y: 0, w: 3, h: 2 }}>
-    {widget.type === "status" ? (
-      <StatusCard {...widget.config} />
-    ) : widget.type === "chart" ? (
-      <ChartWidget />
-    ) : widget.type === "activity" ? (
-      <ActivityTable />
-    ) : widget.type === "labPie" ? (
-      <LabResultsPie />
-    ) : widget.type === "labBar" ? (
-      <LabTrendsBar />
-    ) : (
-      <Card sx={{ p: 2, height: '100%' }}>
-        <Typography>{widget.name}</Typography>
-      </Card>
-    )}
-  </div>
-))}
+          {visibleWidgets.map((widget) => (
+            <div 
+              key={widget.id}
+              data-grid={{
+                ...layouts.lg.find(l => l.i === widget.id.toString()) || { 
+                  x: 0, 
+                  y: 0, 
+                  w: 4, 
+                  h: 3,
+                  minW: 2,
+                  minH: 2
+                }
+              }}
+            >
+              {widget.type === "status" ? (
+                <StatusCard {...widget.config} />
+              ) : widget.type === "chart" ? (
+                <ChartWidget />
+              ) : widget.type === "activity" ? (
+                <ActivityTable />
+              ) : widget.type === "labPie" ? (
+                <LabResultsPie />
+              ) : widget.type === "labBar" ? (
+                <LabTrendsBar />
+              ) : (
+                <Card sx={{ p: 2, height: '100%' }}>
+                  <Typography>{widget.name}</Typography>
+                </Card>
+              )}
+            </div>
+          ))}
         </ResponsiveGridLayout>
 
         <WidgetSelector

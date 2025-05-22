@@ -25,7 +25,7 @@ export const widgets = [
     allowedRoles: ["admin"], 
     config: {
       title: "Monthly Revenue",
-      value: "$48,500",
+      value: "₹48,500",
       icon: "revenue",
       progress: 60
     }
@@ -34,7 +34,7 @@ export const widgets = [
     id: 3, 
     name: "Appointments", 
     type: "chart",
-    allowedRoles: ["admin", "doctor", "nurse"]
+    allowedRoles: ["admin", "doctor"]
   },
   { 
     id: 4, 
@@ -52,6 +52,6 @@ export const widgets = [
     id: 6, 
     name: "Test Trends", 
     type: "labBar",
-    allowedRoles: ["admin", "doctor", "analyst"] 
+    allowedRoles: ["admin", "analyst"] 
   }
 ];

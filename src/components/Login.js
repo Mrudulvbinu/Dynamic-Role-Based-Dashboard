@@ -13,11 +13,12 @@ const Login = ({ onLogin }) => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#F9FAE4',
+      backgroundColor: '#e6ffe6',
       position: 'relative',
       overflow: 'hidden',
       p: 2
     }}>
+        
       {/* Top-left logo */}
       <Box sx={{
         position: 'absolute',
@@ -47,6 +48,7 @@ const Login = ({ onLogin }) => {
         px: 1,
         pointerEvents: 'none'
       }}>
+
         {/* Left image */}
         <img 
           src={require('../assets/hos.png')} 
@@ -57,7 +59,6 @@ const Login = ({ onLogin }) => {
             }} 
         />
     
-        
         {/* Right image */}
         <img 
           src={require('../assets/hospital.png')} 
@@ -110,7 +111,7 @@ const Login = ({ onLogin }) => {
               mb: 2
             }}
           >
-            Select Your Role
+            Your Role
           </Typography>
           <TextField
             select

@@ -6,10 +6,9 @@ function App() {
   const [userRole, setUserRole] = useState(null);
 
   const handleLogout = () => {
-    // Clear any user-related data from storage if needed
     localStorage.removeItem('selectedWidgets');
     localStorage.removeItem('dashboardLayout');
-    setUserRole(null); // This will trigger showing the login page
+    setUserRole(null); 
   };
 
   return (
