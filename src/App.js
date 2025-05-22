@@ -1,23 +1,24 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState } from 'react';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
 
 function App() {
+  const [userRole, setUserRole] = useState(null);
+
+  const handleLogout = () => {
+    // Clear any user-related data from storage if needed
+    localStorage.removeItem('selectedWidgets');
+    localStorage.removeItem('dashboardLayout');
+    setUserRole(null); // This will trigger showing the login page
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {!userRole ? (
+        <Login onLogin={(role) => setUserRole(role)} />
+      ) : (
+        <Dashboard role={userRole} onLogout={handleLogout} />
+      )}
     </div>
   );
 }
