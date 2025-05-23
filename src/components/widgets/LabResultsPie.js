@@ -11,7 +11,7 @@ const COLORS = ['#008573', '#FFBB28', '#FF8042'];
 
 const LabResultsPie = () => {
   return (
-    <Card sx={{ p: 2, height: '100%' }}>
+    <Card sx={{ p: 2, height: '100%'}}>
       <Typography variant="h6" gutterBottom>Lab Results Distribution</Typography>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>

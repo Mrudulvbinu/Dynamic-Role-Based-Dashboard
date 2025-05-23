@@ -35,7 +35,7 @@ const Dashboard = ({ role, onLogout }) => {
       : {
           lg: allWidgets.map((widget, index) => ({
             i: widget.id.toString(),
-            x: (index % 2) * 2, // Adjusted to account for sidebar space
+            x: (index % 2) * 4, // Adjusted to account for sidebar space
             y: Math.floor(index / 2) * 2,
             w: 4,
             h: 2,
@@ -58,22 +58,26 @@ const Dashboard = ({ role, onLogout }) => {
     localStorage.setItem(`selectedWidgets-${role}`, JSON.stringify(newSelection));
   };
 
-  const handleLayoutChange = (currentLayout, allLayouts) => {
-    // Prevent widgets from going into sidebar space
-    const adjustedLayouts = {};
-    Object.keys(allLayouts).forEach((breakpoint) => {
-      adjustedLayouts[breakpoint] = allLayouts[breakpoint].map(item => {
-        // On desktop (lg), ensure x position doesn't go into sidebar space
-        if (breakpoint === 'lg' && item.x < 2) {
-          return { ...item, x: 2 };
-        }
-        return item;
-      });
+ const handleLayoutChange = (currentLayout, allLayouts) => {
+  const adjustedLayouts ={};
+  // Prevent widgets from going into sidebar space
+  Object.keys(allLayouts).forEach((breakpoint) => {
+    adjustedLayouts[breakpoint] = allLayouts[breakpoint].map(item => {
+      // On desktop (lg), ensure x position doesn't go into sidebar space
+      if (breakpoint === 'lg') {
+        return { 
+          ...item, 
+          x: Math.max(item.x, 2) // Minimum x position is 2
+        };
+      }
+      return item;
     });
-    
-    setLayouts(adjustedLayouts);
-    localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify(adjustedLayouts));
-  };
+  });
+  
+  // Update the layouts state
+  setLayouts(adjustedLayouts); 
+  localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify(adjustedLayouts));
+};
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -166,7 +170,7 @@ const Dashboard = ({ role, onLogout }) => {
         sx={{ 
           bgcolor: '#0059b3',
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: '66px',
+          height: '70px',
           boxShadow: 'none',
         }}
       >
@@ -285,31 +289,55 @@ const Dashboard = ({ role, onLogout }) => {
           {activeTab === 'dashboard' ? (
             <>
               <ResponsiveGridLayout
-                className="layout"
-                layouts={layouts}
-                onLayoutChange={handleLayoutChange}
-                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-                rowHeight={100}
-                isDraggable={true}
-                isResizable={true}
-                margin={[20, 20]}
-                containerPadding={[0, 20]}
-              >
-                {visibleWidgets.map((widget) => (
-                  <div 
-                    key={widget.id}
-                    data-grid={{
-                      ...layouts.lg.find(l => l.i === widget.id.toString()) || { 
-                        x: isMobile ? 0 : 3, // Start widgets after sidebar space on desktop
-                        y: 0, 
-                        w: 4, 
-                        h: 3,
-                        minW: 2,
-                        minH: 2
-                      }
-                    }}
-                  >
+  className="layout"
+  layouts={layouts}
+  onLayoutChange={handleLayoutChange}
+  breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+  cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+  rowHeight={100}
+  isDraggable={true}
+  isResizable={true}
+  margin={[20, 20]}
+  containerPadding={[0, 20]}
+  draggableCancel=".MuiButton-root, .MuiIconButton-root"
+  resizeHandles={['se']}
+  compactType={null}
+  preventCollision={true}
+  useCSSTransforms={false} // Add this line
+  onDragStop={(layout, oldItem, newItem) => {
+    const updatedLayouts = {
+      ...layouts,
+      lg: layouts.lg.map(item => 
+        item.i === newItem.i ? { ...item, x: newItem.x, y: newItem.y } : item
+      )
+    };
+    setLayouts(updatedLayouts);
+  }}
+  onResizeStop={(layout, oldItem, newItem) => {
+    const updatedLayouts = {
+      ...layouts,
+      lg: layouts.lg.map(item => 
+        item.i === newItem.i ? { ...item, w: newItem.w, h: newItem.h } : item
+      )
+    };
+    setLayouts(updatedLayouts);
+  }}
+>
+  {visibleWidgets.map((widget) => (
+    <div 
+      key={widget.id}
+      data-grid={{
+        ...layouts.lg.find(l => l.i === widget.id.toString()) || { 
+          x: isMobile ? 0 : 2, // Start at x=2 on desktop
+          y: 0, 
+          w: 4, 
+          h: 2,
+          minW: 2,
+          minH: 2
+        }
+      }}
+    >
+               
                     {widget.type === "status" ? (
                       <StatusCard {...widget.config} />
                     ) : widget.type === "chart" ? (
@@ -336,7 +364,7 @@ const Dashboard = ({ role, onLogout }) => {
               />
             </>
           ) : (
-            <Card sx={{ p: 4, height: '86%' }}>
+            <Card sx={{ p: 4, height: '100%' }}>
               <Typography variant="h4" gutterBottom>
                 Settings
               </Typography>
