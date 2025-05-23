@@ -13,9 +13,16 @@ const Login = ({ onLogin }) => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#e6ffe6',
-      position: 'relative',
-      overflow: 'hidden',
+      backgroundImage: `url(${require('../assets/medik.jpg')})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden', 
       p: 2
     }}>
         
@@ -31,41 +38,6 @@ const Login = ({ onLogin }) => {
           style={{ 
             height: '120px',
             width: 'auto'
-          }} 
-        />
-      </Box>
-
-      {/* Bottom images container */}
-      <Box sx={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        width: '100%',
-        px: 1,
-        pointerEvents: 'none'
-      }}>
-
-        {/* Left image */}
-        <img 
-          src={require('../assets/hos.png')} 
-          alt="Hospital Left" 
-          style={{ 
-            height: '180px',
-            width: 'auto' 
-            }} 
-        />
-    
-        {/* Right image */}
-        <img 
-          src={require('../assets/hospital.png')} 
-          alt="Hospital Right" 
-          style={{ 
-            height: '180px',
-            width: 'auto',
           }} 
         />
       </Box>
@@ -99,7 +71,8 @@ const Login = ({ onLogin }) => {
           p: 4,
           width: '100%',
           borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)'
         }}>
           <Typography 
             variant="h5" 
