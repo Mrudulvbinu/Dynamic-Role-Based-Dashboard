@@ -1,5 +1,6 @@
 import { Card, Table, TableBody, TableCell, TableHead, 
-  TableRow, Typography, Box } from '@mui/material';
+  TableRow, Typography, Box, Stack } from '@mui/material';
+import { History as HistoryIcon } from '@mui/icons-material';
 
 const defaultActivities = [
   { id: 1, action: 'Patient Check-in', time: '10:30 AM', staff: 'Dr. Smith' },
@@ -12,43 +13,67 @@ const defaultActivities = [
 const ActivityTable = ({ activities = defaultActivities }) => {
   return (
     <Card sx={{ 
-      p: 2, 
+      p: 3, 
       height: '100%',
       display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+      flexDirection: 'column'
     }}>
-      <Typography 
-        variant="h6" 
-        gutterBottom
-        sx={{
-          fontFamily: '"Poppins", sans-serif',
-          fontWeight: 'bold',
-          color: '#008573'
-        }}
-      >
-        Recent Activities
-      </Typography>
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+        <HistoryIcon color="primary" sx={{ fontSize: 40 }} />
+        <Typography 
+          variant="h6" 
+          sx={{
+            fontFamily: '"Poppins", sans-serif',
+            fontWeight: 'bold',
+            color: '#008573'
+          }}
+        >
+          Recent Activities
+        </Typography>
+      </Stack>
       
-      <Box sx={{ overflow: 'auto', flex: 1 }}>
+      <Box sx={{ 
+        overflow: 'auto', 
+        flex: 1,
+        '&::-webkit-scrollbar': {
+          width: '0.4em'
+        },
+        '&::-webkit-scrollbar-track': {
+          background: '#f1f1f1',
+          borderRadius: '10px'
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#888',
+          borderRadius: '10px'
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: '#555'
+        }
+      }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell sx={{ 
                 fontWeight: 'bold',
-                backgroundColor: '#f5f5f5'
+                backgroundColor: '#f5f5f5',
+                fontFamily: '"Poppins", sans-serif',
+                fontSize: '0.875rem'
               }}>
                 Time
               </TableCell>
               <TableCell sx={{ 
                 fontWeight: 'bold',
-                backgroundColor: '#f5f5f5'
+                backgroundColor: '#f5f5f5',
+                fontFamily: '"Poppins", sans-serif',
+                fontSize: '0.875rem'
               }}>
                 Action
               </TableCell>
               <TableCell sx={{ 
                 fontWeight: 'bold',
-                backgroundColor: '#f5f5f5'
+                backgroundColor: '#f5f5f5',
+                fontFamily: '"Poppins", sans-serif',
+                fontSize: '0.875rem'
               }}>
                 Staff
               </TableCell>
@@ -64,9 +89,32 @@ const ActivityTable = ({ activities = defaultActivities }) => {
                   '&:nth-of-type(odd)': { backgroundColor: '#fafafa' }
                 }}
               >
-                <TableCell sx={{ color: 'text.secondary' }}>{activity.time}</TableCell>
-                <TableCell>{activity.action}</TableCell>
-                <TableCell sx={{ fontWeight: 'medium' }}>{activity.staff}</TableCell>
+                <TableCell 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontFamily: '"Roboto", sans-serif',
+                    fontSize: '0.8125rem'
+                  }}
+                >
+                  {activity.time}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontFamily: '"Roboto", sans-serif',
+                    fontSize: '0.8125rem'
+                  }}
+                >
+                  {activity.action}
+                </TableCell>
+                <TableCell 
+                  sx={{ 
+                    fontWeight: 'medium',
+                    fontFamily: '"Roboto", sans-serif',
+                    fontSize: '0.8125rem'
+                  }}
+                >
+                  {activity.staff}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

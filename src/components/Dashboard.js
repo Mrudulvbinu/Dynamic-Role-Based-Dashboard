@@ -3,16 +3,22 @@ import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import useRolePermissions from "../hooks/useRolePermissions";
-import { Box, Card, Typography, Button, AppBar, Toolbar, Drawer, IconButton, List, ListItem, ListItemIcon, ListItemText, useMediaQuery } from "@mui/material";
-import { ExitToApp, Dashboard as DashboardIcon, Menu, Settings } from "@mui/icons-material";
+import { Box, Card, Typography, Button, AppBar, Toolbar, Drawer, IconButton, List, ListItem, ListItemIcon, 
+  ListItemText, useMediaQuery, Menu, MenuItem, Checkbox, FormControlLabel } from "@mui/material";
+import { ExitToApp, Dashboard as DashboardIcon, Menu as MenuIcon, Settings, Widgets } from "@mui/icons-material";
 import StatusCard from "./widgets/StatusCard";
 import ChartWidget from "./widgets/ChartWidget";
 import ActivityTable from "./widgets/ActivityTable";
 import LabResultsPie from "./widgets/LabResultsPie";
 import LabTrendsBar from "./widgets/LabTrendsBar";
-import WidgetSelector from "./WidgetSelector";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// Fixed widget dimensions for 3-column layout
+const WIDGET_WIDTH = 4; // 12 total units / 3 columns = 4 units per widget
+const WIDGET_HEIGHT = 3;
+const GRID_COLUMNS = 12; // Total grid columns
+const GRID_MARGIN = [20, 20]; // Horizontal and vertical margin between widgets
 
 const Dashboard = ({ role, onLogout }) => {
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -21,6 +27,7 @@ const Dashboard = ({ role, onLogout }) => {
   const allWidgets = useRolePermissions(role);
   const [selectedWidgets, setSelectedWidgets] = useState([]);
   const [layouts, setLayouts] = useState({ lg: [] });
+  const [widgetMenuAnchor, setWidgetMenuAnchor] = useState(null);
 
   useEffect(() => {
     const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
@@ -30,21 +37,24 @@ const Dashboard = ({ role, onLogout }) => {
       ? JSON.parse(savedWidgets) 
       : allWidgets.map(w => w.id);
       
+    const calculateInitialLayout = (widgets) => {
+      return widgets.map((widget, index) => ({
+        i: widget.id.toString(),
+        x: (index % 3) * WIDGET_WIDTH, // Strict 3-column layout
+        y: Math.floor(index / 3) * WIDGET_HEIGHT,
+        w: WIDGET_WIDTH,
+        h: WIDGET_HEIGHT,
+        minW: WIDGET_WIDTH,
+        maxW: WIDGET_WIDTH,
+        minH: WIDGET_HEIGHT,
+        maxH: WIDGET_HEIGHT,
+        isResizable: false
+      }));
+    };
+
     const initialLayouts = savedLayouts 
       ? JSON.parse(savedLayouts)
-      : {
-          lg: allWidgets.map((widget, index) => ({
-            i: widget.id.toString(),
-            x: (index % 2) * 4, // Adjusted to account for sidebar space
-            y: Math.floor(index / 2) * 2,
-            w: 4,
-            h: 2,
-            minW: 2,
-            minH: 2,
-            isResizable: true,
-            isDraggable: true
-          }))
-        };
+      : { lg: calculateInitialLayout(allWidgets.filter(w => initialWidgets.includes(w.id))) };
 
     setSelectedWidgets(initialWidgets);
     setLayouts(initialLayouts);
@@ -54,33 +64,88 @@ const Dashboard = ({ role, onLogout }) => {
     const newSelection = selectedWidgets.includes(widgetId)
       ? selectedWidgets.filter(id => id !== widgetId)
       : [...selectedWidgets, widgetId];
+    
     setSelectedWidgets(newSelection);
+    
+    const visibleWidgets = allWidgets.filter(w => newSelection.includes(w.id));
+    const newLayout = visibleWidgets.map((widget, index) => {
+      const existingPos = layouts.lg.find(l => l.i === widget.id.toString());
+      if (existingPos) return existingPos;
+      
+      // Calculate position for new widget at the end
+      const maxY = layouts.lg.reduce((max, item) => Math.max(max, item.y), -1);
+      return {
+        i: widget.id.toString(),
+        x: (index % 3) * WIDGET_WIDTH,
+        y: maxY + WIDGET_HEIGHT,
+        w: WIDGET_WIDTH,
+        h: WIDGET_HEIGHT,
+        isResizable: false
+      };
+    });
+    
+    setLayouts({ lg: newLayout });
     localStorage.setItem(`selectedWidgets-${role}`, JSON.stringify(newSelection));
+    localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify({ lg: newLayout }));
   };
 
- const handleLayoutChange = (currentLayout, allLayouts) => {
-  const adjustedLayouts ={};
-  // Prevent widgets from going into sidebar space
-  Object.keys(allLayouts).forEach((breakpoint) => {
-    adjustedLayouts[breakpoint] = allLayouts[breakpoint].map(item => {
-      // On desktop (lg), ensure x position doesn't go into sidebar space
-      if (breakpoint === 'lg') {
-        return { 
-          ...item, 
-          x: Math.max(item.x, 2) // Minimum x position is 2
-        };
-      }
-      return item;
+  const handleLayoutChange = (currentLayout, allLayouts) => {
+    const lgLayout = allLayouts.lg.map(item => {
+      // Snap to grid columns
+      const snappedX = Math.round(item.x / WIDGET_WIDTH) * WIDGET_WIDTH;
+      
+      // Ensure x position stays within grid bounds
+      const boundedX = Math.min(Math.max(snappedX, 0), GRID_COLUMNS - WIDGET_WIDTH);
+      
+      return {
+        ...item,
+        x: boundedX,
+        y: item.y, // Keep original y position
+        w: WIDGET_WIDTH,
+        h: WIDGET_HEIGHT
+      };
     });
-  });
-  
-  // Update the layouts state
-  setLayouts(adjustedLayouts); 
-  localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify(adjustedLayouts));
-};
+    
+    setLayouts({ lg: lgLayout });
+    localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify({ lg: lgLayout }));
+  };
+
+  // Handle widget position swapping
+  const handleDragStop = (layout, oldItem, newItem) => {
+    // Find if we dropped on another widget
+    const targetWidget = layout.find(item => 
+      item.i !== newItem.i && 
+      item.x === newItem.x && 
+      item.y === newItem.y
+    );
+
+    if (targetWidget) {
+      // Swap positions
+      const updatedLayout = layout.map(item => {
+        if (item.i === newItem.i) {
+          return { ...item, x: targetWidget.x, y: targetWidget.y };
+        }
+        if (item.i === targetWidget.i) {
+          return { ...item, x: newItem.x, y: newItem.y };
+        }
+        return item;
+      });
+
+      setLayouts({ lg: updatedLayout });
+      localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify({ lg: updatedLayout }));
+    }
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleWidgetMenuOpen = (event) => {
+    setWidgetMenuAnchor(event.currentTarget);
+  };
+
+  const handleWidgetMenuClose = () => {
+    setWidgetMenuAnchor(null);
   };
 
   const visibleWidgets = allWidgets.filter(w => selectedWidgets.includes(w.id));
@@ -164,7 +229,6 @@ const Dashboard = ({ role, onLogout }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Fixed AppBar */}
       <AppBar 
         position="fixed" 
         sx={{ 
@@ -182,7 +246,7 @@ const Dashboard = ({ role, onLogout }) => {
               onClick={handleDrawerToggle}
               sx={{ mr: 3 }}
             >
-              <Menu />
+              <MenuIcon />
             </IconButton>
             <Typography variant="h4" sx={{ 
               fontFamily: '"Poppins", sans-serif',
@@ -192,39 +256,90 @@ const Dashboard = ({ role, onLogout }) => {
               {role.charAt(0).toUpperCase() + role.slice(1)} Dashboard
             </Typography>
           </Box>
-          <Button
-            variant="outlined"
-            color="inherit" 
-            startIcon={<ExitToApp />}
-            onClick={onLogout}
-            sx={{
-              borderRadius: '20px',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              transition: 'all 0.3s ease',
-              transform: 'scale(1)',
-              borderWidth: '2px',
-              borderColor: 'white',
-              color: 'white', 
-              '&:hover': {
-                backgroundColor: 'white',
-                color: 'black',
-                transform: 'scale(1.05)',
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<Widgets />}
+              onClick={handleWidgetMenuOpen}
+              sx={{
+                borderRadius: '20px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
                 borderWidth: '2px',
-                borderColor: 'white', 
-                boxShadow: '0 4px 8px rgba(255, 255, 255, 0.3)'
-              }
-            }}
-          >
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }}}>
-              Logout
-            </Box>
-          </Button>
+                borderColor: 'white',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'white',
+                  color: 'black',
+                  borderWidth: '2px',
+                  borderColor: 'white',
+                }
+              }}
+            >
+              Widgets
+            </Button>
+            <Menu
+              anchorEl={widgetMenuAnchor}
+              open={Boolean(widgetMenuAnchor)}
+              onClose={handleWidgetMenuClose}
+              PaperProps={{
+                style: {
+                  maxHeight: '70vh',
+                  width: '250px',
+                },
+              }}
+            >
+              <MenuItem disabled>
+                <Typography variant="subtitle1" fontWeight="bold">Select Widgets</Typography>
+              </MenuItem>
+              {allWidgets.map((widget) => (
+                <MenuItem key={widget.id} onClick={(e) => e.stopPropagation()}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={selectedWidgets.includes(widget.id)}
+                        onChange={() => handleToggleWidget(widget.id)}
+                        color="primary"
+                      />
+                    }
+                    label={widget.name}
+                    sx={{ width: '100%' }}
+                  />
+                </MenuItem>
+              ))}
+            </Menu>
+            <Button
+              variant="outlined"
+              color="inherit" 
+              startIcon={<ExitToApp />}
+              onClick={onLogout}
+              sx={{
+                borderRadius: '20px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
+                borderWidth: '2px',
+                borderColor: 'white',
+                color: 'white', 
+                '&:hover': {
+                  backgroundColor: 'white',
+                  color: 'black',
+                  borderWidth: '2px',
+                  borderColor: 'white', 
+                }
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }}}>
+                Logout
+              </Box>
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
 
       <Box sx={{ display: 'flex', flexGrow: 1, pt: '65px' }}>
-        {/* Desktop Sidebar - Permanent and takes its own space */}
         {!isMobile && (
           <Box
             sx={{
@@ -251,7 +366,6 @@ const Dashboard = ({ role, onLogout }) => {
           </Box>
         )}
 
-        {/* Mobile Sidebar - Temporary and overlays content */}
         {isMobile && (
           <Drawer
             variant="temporary"
@@ -275,69 +389,48 @@ const Dashboard = ({ role, onLogout }) => {
           </Drawer>
         )}
 
-        {/* Main Content - Adjusts width based on sidebar */}
         <Box 
           component="main" 
           sx={{ 
             flexGrow: 1,
-            p: 1,
+            p: 4,
             width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
             ml: isMobile ? 0 : `${drawerWidth}px`,
             transition: 'margin 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
           }}
         >
           {activeTab === 'dashboard' ? (
-            <>
-              <ResponsiveGridLayout
-  className="layout"
-  layouts={layouts}
-  onLayoutChange={handleLayoutChange}
-  breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-  cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-  rowHeight={100}
-  isDraggable={true}
-  isResizable={true}
-  margin={[20, 20]}
-  containerPadding={[0, 20]}
-  draggableCancel=".MuiButton-root, .MuiIconButton-root"
-  resizeHandles={['se']}
-  compactType={null}
-  preventCollision={true}
-  useCSSTransforms={false} // Add this line
-  onDragStop={(layout, oldItem, newItem) => {
-    const updatedLayouts = {
-      ...layouts,
-      lg: layouts.lg.map(item => 
-        item.i === newItem.i ? { ...item, x: newItem.x, y: newItem.y } : item
-      )
-    };
-    setLayouts(updatedLayouts);
-  }}
-  onResizeStop={(layout, oldItem, newItem) => {
-    const updatedLayouts = {
-      ...layouts,
-      lg: layouts.lg.map(item => 
-        item.i === newItem.i ? { ...item, w: newItem.w, h: newItem.h } : item
-      )
-    };
-    setLayouts(updatedLayouts);
-  }}
->
-  {visibleWidgets.map((widget) => (
-    <div 
-      key={widget.id}
-      data-grid={{
-        ...layouts.lg.find(l => l.i === widget.id.toString()) || { 
-          x: isMobile ? 0 : 2, // Start at x=2 on desktop
-          y: 0, 
-          w: 4, 
-          h: 2,
-          minW: 2,
-          minH: 2
-        }
-      }}
-    >
-               
+            <ResponsiveGridLayout
+              className="layout"
+              layouts={layouts}
+              onLayoutChange={handleLayoutChange}
+              onDragStop={handleDragStop}
+              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} // 12 columns for 3 widgets (4 units each)
+              rowHeight={100}
+              isDraggable={true}
+              isResizable={false}
+              margin={GRID_MARGIN}
+              containerPadding={[20, 20]}
+              draggableCancel=".MuiButton-root, .MuiIconButton-root"
+              compactType={null}
+              preventCollision={true}
+              useCSSTransforms={false}
+            >
+              {visibleWidgets.map((widget) => {
+                const defaultLayout = {
+                  x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
+                  y: Math.floor(visibleWidgets.indexOf(widget) / 3) * WIDGET_HEIGHT,
+                  w: WIDGET_WIDTH,
+                  h: WIDGET_HEIGHT
+                };
+                const existingLayout = layouts.lg.find(l => l.i === widget.id.toString());
+                
+                return (
+                  <div 
+                    key={widget.id}
+                    data-grid={existingLayout || defaultLayout}
+                  >
                     {widget.type === "status" ? (
                       <StatusCard {...widget.config} />
                     ) : widget.type === "chart" ? (
@@ -349,22 +442,16 @@ const Dashboard = ({ role, onLogout }) => {
                     ) : widget.type === "labBar" ? (
                       <LabTrendsBar />
                     ) : (
-                      <Card sx={{ p: 2, height: '100%' }}>
+                      <Card sx={{ p: 4, height: '100%' }}>
                         <Typography>{widget.name}</Typography>
                       </Card>
                     )}
                   </div>
-                ))}
-              </ResponsiveGridLayout>
-
-              <WidgetSelector
-                widgets={allWidgets}
-                selectedWidgets={selectedWidgets}
-                onToggleWidget={handleToggleWidget}
-              />
-            </>
+                );
+              })}
+            </ResponsiveGridLayout>
           ) : (
-            <Card sx={{ p: 4, height: '100%' }}>
+            <Card sx={{ p: 4, height: '80%' }}>
               <Typography variant="h4" gutterBottom>
                 Settings
               </Typography>
