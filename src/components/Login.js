@@ -1,10 +1,32 @@
 import { useState } from 'react';
-import { Button, Card, Typography, MenuItem, TextField, Box } from '@mui/material';
-
-const roles = ["Admin", "Doctor", "Nurse", "Analyst"];
+import { Button, Card, Typography, TextField, Box, InputAdornment, IconButton } from '@mui/material';
+import { Visibility, VisibilityOff, Person, Lock } from '@mui/icons-material';
 
 const Login = ({ onLogin }) => {
-  const [selectedRole, setSelectedRole] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = () => {
+    const user = mockUsers.find(
+      u => u.username.toLowerCase() === username.toLowerCase() && 
+           u.password === password
+    );
+
+    if (user) {
+      setError("");
+      onLogin(user.role); 
+    } else {
+      setError("Invalid username or password");
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
 
   return (
     <Box sx={{
@@ -84,33 +106,75 @@ const Login = ({ onLogin }) => {
               mb: 2
             }}
           >
-            Your Role
+            Login
           </Typography>
+
+          {error && (
+            <Typography color="error" align="center" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
+
           <TextField
-            select
-            label="Role"
+            label="Username"
             fullWidth
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             sx={{ mb: 3 }}
-          >
-            {roles.map((role) => (
-              <MenuItem key={role} value={role.toLowerCase()}>
-                {role}
-              </MenuItem>
-            ))}
-          </TextField>
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Person />
+                </InputAdornment>
+              ),
+            }}
+            onKeyUp={handleKeyPress}
+          />
+
+          <TextField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{ mb: 3 }}
+            slotProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            onKeyUp={handleKeyPress}
+          />
+
           <Button
             variant="contained"
             fullWidth
-            onClick={() => onLogin(selectedRole)}
-            disabled={!selectedRole}
+            onClick={handleLogin}
+            disabled={!username || !password}
             sx={{
               py: 1.5,
               fontSize: '1rem',
               fontWeight: 'bold',
               borderRadius: '8px',
-              fontFamily: '"Poppins", sans-serif'
+              fontFamily: '"Poppins", sans-serif',
+              background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              },
+              transition: 'all 0.3s ease',
             }}
           >
             LOGIN
@@ -120,5 +184,29 @@ const Login = ({ onLogin }) => {
     </Box>
   );
 };
+
+// Mock user database
+const mockUsers = [
+  {
+    username: "admin",
+    password: "admin123",
+    role: "admin"
+  },
+  {
+    username: "doctor",
+    password: "doctor123",
+    role: "doctor"
+  },
+  {
+    username: "nurse",
+    password: "nurse123",
+    role: "nurse"
+  },
+  {
+    username: "analyst",
+    password: "analyst123",
+    role: "analyst"
+  }
+];
 
 export default Login;
