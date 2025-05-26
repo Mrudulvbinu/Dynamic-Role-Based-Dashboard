@@ -14,11 +14,12 @@ import LabTrendsBar from "./widgets/LabTrendsBar";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-// Fixed widget dimensions for 3-column layout
-const WIDGET_WIDTH = 4; // 12 total units / 3 columns = 4 units per widget
+const WIDGET_WIDTH = 4; 
 const WIDGET_HEIGHT = 3;
-const GRID_COLUMNS = 12; // Total grid columns
-const GRID_MARGIN = [20, 20]; // Horizontal and vertical margin between widgets
+const GRID_COLUMNS = 12;
+const ROW_HEIGHT = 120; 
+const CONTAINER_PADDING = [20, 30];
+const GRID_MARGIN = [20, 20]; 
 
 const Dashboard = ({ role, onLogout }) => {
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -40,7 +41,7 @@ const Dashboard = ({ role, onLogout }) => {
     const calculateInitialLayout = (widgets) => {
       return widgets.map((widget, index) => ({
         i: widget.id.toString(),
-        x: (index % 3) * WIDGET_WIDTH, // Strict 3-column layout
+        x: (index % 3) * WIDGET_WIDTH, 
         y: Math.floor(index / 3) * WIDGET_HEIGHT,
         w: WIDGET_WIDTH,
         h: WIDGET_HEIGHT,
@@ -72,7 +73,6 @@ const Dashboard = ({ role, onLogout }) => {
       const existingPos = layouts.lg.find(l => l.i === widget.id.toString());
       if (existingPos) return existingPos;
       
-      // Calculate position for new widget at the end
       const maxY = layouts.lg.reduce((max, item) => Math.max(max, item.y), -1);
       return {
         i: widget.id.toString(),
@@ -91,16 +91,14 @@ const Dashboard = ({ role, onLogout }) => {
 
   const handleLayoutChange = (currentLayout, allLayouts) => {
     const lgLayout = allLayouts.lg.map(item => {
-      // Snap to grid columns
       const snappedX = Math.round(item.x / WIDGET_WIDTH) * WIDGET_WIDTH;
       
-      // Ensure x position stays within grid bounds
       const boundedX = Math.min(Math.max(snappedX, 0), GRID_COLUMNS - WIDGET_WIDTH);
       
       return {
         ...item,
         x: boundedX,
-        y: item.y, // Keep original y position
+        y: item.y, 
         w: WIDGET_WIDTH,
         h: WIDGET_HEIGHT
       };
@@ -110,9 +108,7 @@ const Dashboard = ({ role, onLogout }) => {
     localStorage.setItem(`dashboardLayout-${role}`, JSON.stringify({ lg: lgLayout }));
   };
 
-  // Handle widget position swapping
   const handleDragStop = (layout, oldItem, newItem) => {
-    // Find if we dropped on another widget
     const targetWidget = layout.find(item => 
       item.i !== newItem.i && 
       item.x === newItem.x && 
@@ -120,7 +116,6 @@ const Dashboard = ({ role, onLogout }) => {
     );
 
     if (targetWidget) {
-      // Swap positions
       const updatedLayout = layout.map(item => {
         if (item.i === newItem.i) {
           return { ...item, x: targetWidget.x, y: targetWidget.y };
@@ -397,59 +392,81 @@ const Dashboard = ({ role, onLogout }) => {
             width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
             ml: isMobile ? 0 : `${drawerWidth}px`,
             transition: 'margin 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
+            paddingTop: '20px', 
+            paddingBottom: '40px'
           }}
         >
           {activeTab === 'dashboard' ? (
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={layouts}
-              onLayoutChange={handleLayoutChange}
-              onDragStop={handleDragStop}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} // 12 columns for 3 widgets (4 units each)
-              rowHeight={100}
-              isDraggable={true}
-              isResizable={false}
-              margin={GRID_MARGIN}
-              containerPadding={[20, 20]}
-              draggableCancel=".MuiButton-root, .MuiIconButton-root"
-              compactType={null}
-              preventCollision={true}
-              useCSSTransforms={false}
-            >
-              {visibleWidgets.map((widget) => {
-                const defaultLayout = {
-                  x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
-                  y: Math.floor(visibleWidgets.indexOf(widget) / 3) * WIDGET_HEIGHT,
-                  w: WIDGET_WIDTH,
-                  h: WIDGET_HEIGHT
-                };
-                const existingLayout = layouts.lg.find(l => l.i === widget.id.toString());
-                
-                return (
-                  <div 
-                    key={widget.id}
-                    data-grid={existingLayout || defaultLayout}
-                  >
-                    {widget.type === "status" ? (
-                      <StatusCard {...widget.config} />
-                    ) : widget.type === "chart" ? (
-                      <ChartWidget />
-                    ) : widget.type === "activity" ? (
-                      <ActivityTable />
-                    ) : widget.type === "labPie" ? (
-                      <LabResultsPie />
-                    ) : widget.type === "labBar" ? (
-                      <LabTrendsBar />
-                    ) : (
-                      <Card sx={{ p: 4, height: '100%' }}>
-                        <Typography>{widget.name}</Typography>
-                      </Card>
-                    )}
-                  </div>
-                );
-              })}
-            </ResponsiveGridLayout>
+            <div className="p-4" style={{ 
+  paddingTop: '10px',
+  paddingBottom: '30px',
+  height: '100%',
+  overflow: 'hidden'
+}}>
+  <ResponsiveGridLayout
+    className="layout"
+    layouts={layouts}
+    onLayoutChange={handleLayoutChange}
+    onDragStop={handleDragStop}
+    breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+    cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+    rowHeight={ROW_HEIGHT}  
+    isDraggable={true}
+    isResizable={false}
+    margin={GRID_MARGIN}
+    containerPadding={CONTAINER_PADDING}
+    draggableCancel=".MuiButton-root, .MuiIconButton-root"
+    compactType="vertical"
+    preventCollision={false} 
+    style={{
+      minHeight: 'calc(100vh - 200px)',
+      backgroundColor: 'transparent'
+    }}
+  >
+    {visibleWidgets.map((widget) => {
+      const defaultLayout = {
+        x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
+        y: Math.floor(visibleWidgets.indexOf(widget) / 3) * WIDGET_HEIGHT,
+        w: WIDGET_WIDTH,
+        h: WIDGET_HEIGHT,
+        minH: WIDGET_HEIGHT,
+        maxH: WIDGET_HEIGHT
+      };
+      
+      const existingLayout = layouts.lg.find(l => l.i === widget.id.toString());
+      
+      return (
+        <div 
+          key={widget.id}
+          data-grid={existingLayout || defaultLayout}
+          style={{
+            overflow: 'hidden',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            transition: 'box-shadow 0.3s ease'
+          }}
+        >
+          {/* widget components */}
+          {widget.type === "status" ? (
+            <StatusCard {...widget.config} />
+          ) : widget.type === "chart" ? (
+            <ChartWidget />
+          ) : widget.type === "activity" ? (
+            <ActivityTable />
+          ) : widget.type === "labPie" ? (
+            <LabResultsPie />
+          ) : widget.type === "labBar" ? (
+            <LabTrendsBar />
+          ) : (
+            <Card sx={{ p: 4, height: '100%' }}>
+              <Typography>{widget.name}</Typography>
+            </Card>
+          )}
+        </div>
+      );
+    })}
+  </ResponsiveGridLayout>
+</div>
           ) : (
             <Card sx={{ p: 4, height: '80%' }}>
               <Typography variant="h4" gutterBottom>
