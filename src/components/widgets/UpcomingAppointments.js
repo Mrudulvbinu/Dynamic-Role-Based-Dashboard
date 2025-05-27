@@ -1,5 +1,5 @@
 import { CalendarClock } from 'lucide-react';
-import { Card, Typography, Box, Stack, List, ListItem, ListItemText, Avatar } from '@mui/material';
+import { Card, Typography, Stack, List, ListItem, ListItemText, Avatar } from '@mui/material';
 
 const UpcomingAppointments = ({ appointments = [] }) => {
   return (

@@ -14,6 +14,9 @@ import LabTrendsBar from "./widgets/LabTrendsBar";
 import PatientStatsCard from "./widgets/PatientStatsCard";
 import UpcomingAppointments from "./widgets/UpcomingAppointments";
 import Prescriptions from "./widgets/Prescriptions";
+import TableChartIcon from '@mui/icons-material/TableChart';
+import DynamicTable from "./DynamicTable";
+import { patientTableData, doctorTableData } from "../mockData";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -24,7 +27,7 @@ const ROW_HEIGHT = 120;
 const CONTAINER_PADDING = [20, 30];
 const GRID_MARGIN = [20, 20]; 
 
-const Dashboard = ({ role, onLogout }) => {
+const Dashboard = ({ role, onLogout, user }) => {
   const isMobile = useMediaQuery('(max-width:600px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -148,82 +151,135 @@ const Dashboard = ({ role, onLogout }) => {
 
   const visibleWidgets = allWidgets.filter(w => selectedWidgets.includes(w.id));
 
-  const drawerWidth = 220;
+  const drawerWidth = 230;
 
-  const drawer = (
-    <Box
-      sx={{
-        height: '100%',
-        backdropFilter: 'blur(6px)',
-        backgroundColor: 'rgba(255, 255, 255, 0.86)',
-        boxShadow: '0 8px 32px rgba(14, 17, 71, 0.37)',
-        borderRight: '4px solid rgba(255, 255, 255, 0.78)',
-        background: 'linear-gradient(120deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.89) 100%)',
-      }}
-    >
-      <List sx={{ pt: 0 }}>
-        <ListItem 
-          button 
-          selected={activeTab === 'dashboard'}
-          onClick={() => setActiveTab('dashboard')}
-          sx={{
-            mt: '64px',
-            '&.Mui-selected': {
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
-              borderLeft: '3px solid gray'
-            },
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              transform: 'scale(1.01)',
-              boxShadow: '0 2px 4px rgba(91, 85, 85, 0.3)'
-            },
-            transition: 'all 0.3s ease',
-          }}
-        >
-          <ListItemIcon sx={{ color: 'black', minWidth: '40px' }}>
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText 
-            primary="Dashboard" 
-            primaryTypographyProps={{ 
+ const drawer = (
+  <Box
+    sx={{
+      height: '100%',
+      backdropFilter: 'blur(6px)',
+      backgroundColor: 'rgba(255, 255, 255, 0.86)',
+      boxShadow: '0 8px 32px rgba(14, 17, 71, 0.37)',
+      borderRight: '4px solid rgba(255, 255, 255, 0.78)',
+      background: 'linear-gradient(120deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.89) 100%)',
+    }}
+  >
+    <List sx={{ pt: 0 }}>
+      <ListItem 
+        button 
+        selected={activeTab === 'dashboard'}
+        onClick={() => setActiveTab('dashboard')}
+        sx={{
+          mt: '64px',
+          backgroundColor: activeTab === 'dashboard' ? '#0059b3' : 'transparent',
+          color: activeTab === 'dashboard' ? 'white' : 'black',
+          borderRadius:'10px',
+          '&:hover': {
+            backgroundColor: 'white',
+            color: 'black',
+            borderRadius:'10px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+            transform: 'scale(1.01)',
+            '& .MuiListItemIcon-root': {
               color: 'black',
-              fontWeight: 'bold',
-              fontFamily: '"Poppins", sans-serif'
-            }} 
-          />
-        </ListItem>
-        <ListItem 
-          button 
-          selected={activeTab === 'settings'}
-          onClick={() => setActiveTab('settings')}
-          sx={{
-            '&.Mui-selected': {
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
-              borderLeft: '3px solid gray'
             },
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              transform: 'scale(1.01)',
-              boxShadow: '0 2px 4px rgba(91, 85, 85, 0.3)'
-            },
-            transition: 'all 0.3s ease',
-          }}
-        >
-          <ListItemIcon sx={{ color: 'black', minWidth: '40px' }}>
-            <Settings />
-          </ListItemIcon>
-          <ListItemText 
-            primary="Settings" 
-            primaryTypographyProps={{ 
+          },
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <ListItemIcon sx={{ 
+          color: activeTab === 'dashboard' ? 'white' : 'black',
+          minWidth: '40px',
+          transition: 'color 0.3s ease',
+        }}>
+          <DashboardIcon />
+        </ListItemIcon>
+        <ListItemText 
+          primary="Dashboard" 
+          primaryTypographyProps={{ 
+            fontWeight: 'bold',
+            fontFamily: '"Poppins", sans-serif',
+          }} 
+        />
+      </ListItem>
+
+
+      <ListItem 
+  button 
+  selected={activeTab === 'dataTable'}
+  onClick={() => setActiveTab('dataTable')}
+  sx={{
+    display: role === 'doctor' || role === 'patient' ? 'flex' : 'none',
+    backgroundColor: activeTab === 'dataTable' ? '#0059b3' : 'transparent',
+    color: activeTab === 'dataTable' ? 'white' : 'black',
+    borderRadius:'10px',
+    '&:hover': {
+      backgroundColor: 'white',
+      color: 'black',
+      borderRadius:'10px',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+      transform: 'scale(1.01)',
+      '& .MuiListItemIcon-root': { color: 'black' },
+    },
+    transition: 'all 0.3s ease',
+  }}
+>
+  <ListItemIcon sx={{ 
+    color: activeTab === 'dataTable' ? 'white' : 'black',
+    minWidth: '40px',
+    transition: 'color 0.3s ease',
+  }}>
+    <TableChartIcon />
+  </ListItemIcon>
+  <ListItemText 
+    primary="Data Table" 
+    primaryTypographyProps={{ 
+      fontWeight: 'bold',
+      fontFamily: '"Poppins", sans-serif',
+    }} 
+  />
+</ListItem>
+
+
+      <ListItem 
+        button 
+        selected={activeTab === 'settings'}
+        onClick={() => setActiveTab('settings')}
+        sx={{
+          backgroundColor: activeTab === 'settings' ? '#0059b3' : 'transparent',
+          color: activeTab === 'settings' ? 'white' : 'black',
+          borderRadius:'10px',
+          '&:hover': {
+            backgroundColor: 'white',
+            color: 'black',
+            borderRadius:'10px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+            transform: 'scale(1.01)',
+            '& .MuiListItemIcon-root': {
               color: 'black',
-              fontWeight: 'bold',
-              fontFamily: '"Poppins", sans-serif'
-            }} 
-          />
-        </ListItem>
-      </List>
-    </Box>
-  );
+            },
+          },
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <ListItemIcon sx={{ 
+          color: activeTab === 'settings' ? 'white' : 'black',
+          minWidth: '40px',
+          transition: 'color 0.3s ease',
+        }}>
+          <Settings />
+        </ListItemIcon>
+        <ListItemText 
+          primary="Settings" 
+          primaryTypographyProps={{ 
+            fontWeight: 'bold',
+            fontFamily: '"Poppins", sans-serif',
+          }} 
+        />
+      </ListItem>
+    </List>
+  </Box>
+);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -388,105 +444,114 @@ const Dashboard = ({ role, onLogout }) => {
         )}
 
         <Box 
-          component="main" 
-          sx={{ 
-            flexGrow: 1,
-            p: 4,
-            width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
-            ml: isMobile ? 0 : `${drawerWidth}px`,
-            transition: 'margin 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
-            paddingTop: '20px', 
-            paddingBottom: '40px'
-          }}
-        >
-          {activeTab === 'dashboard' ? (
-            <div className="p-4" style={{ 
-  paddingTop: '10px',
-  paddingBottom: '30px',
-  height: '100%',
-  overflow: 'hidden'
-}}>
-  <ResponsiveGridLayout
-    className="layout"
-    layouts={layouts}
-    onLayoutChange={handleLayoutChange}
-    onDragStop={handleDragStop}
-    breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-    cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-    rowHeight={ROW_HEIGHT}  
-    isDraggable={true}
-    isResizable={false}
-    margin={GRID_MARGIN}
-    containerPadding={CONTAINER_PADDING}
-    draggableCancel=".MuiButton-root, .MuiIconButton-root"
-    compactType="vertical"
-    preventCollision={false} 
-    style={{
-      minHeight: 'calc(100vh - 200px)',
-      backgroundColor: 'transparent'
-    }}
-  >
-    {visibleWidgets.map((widget) => {
-      const defaultLayout = {
-        x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
-        y: Math.floor(visibleWidgets.indexOf(widget) / 3) * WIDGET_HEIGHT,
-        w: WIDGET_WIDTH,
-        h: WIDGET_HEIGHT,
-        minH: WIDGET_HEIGHT,
-        maxH: WIDGET_HEIGHT
-      };
-      
-      const existingLayout = layouts.lg.find(l => l.i === widget.id.toString());
-      
-      return (
-        <div 
-          key={widget.id}
-          data-grid={existingLayout || defaultLayout}
-          style={{
-            overflow: 'hidden',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            transition: 'box-shadow 0.3s ease'
-          }}
-        >
-          {/* widget components */}
-          {widget.type === "status" ? (
-            <StatusCard {...widget.config} />
-          ) : widget.type === "chart" ? (
-            <ChartWidget />
-          ) : widget.type === "activity" ? (
-            <ActivityTable />
-          ) : widget.type === "labPie" ? (
-            <LabResultsPie />
-          ) : widget.type === "labBar" ? (
-            <LabTrendsBar />
-          ) : widget.type === "appointmentList" ? (
-            <UpcomingAppointments appointments={widget.config?.appointments} />
-          ) : widget.type === "prescriptionList" ? (
-            <Prescriptions prescriptions={widget.config?.prescriptions} />
-          ) : widget.type === "patientStatus" ? (
-            <PatientStatsCard {...widget.config} />
-          ):(
-            <Card sx={{ p: 4, height: '100%' }}>
-              <Typography>{widget.name}</Typography>
-            </Card>
-          )}
-        </div>
-      );
-    })}
-  </ResponsiveGridLayout>
-</div>
-          ) : (
-            <Card sx={{ p: 4, height: '80%' }}>
-              <Typography variant="h4" gutterBottom>
-                Settings
-              </Typography>
-              <Typography>
-                Application settings will appear here
-              </Typography>
-            </Card>
-          )}
-        </Box>
+  component="main" 
+  sx={{ 
+    flexGrow: 1,
+    p: 4,
+    width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
+    ml: isMobile ? 0 : `${drawerWidth}px`,
+    transition: 'margin 225ms cubic-bezier(0, 0, 0.2, 1) 0ms',
+    paddingTop: '20px', 
+    paddingBottom: '40px'
+  }}
+>
+  {activeTab === 'dashboard' ? (
+    <div className="p-4" style={{ 
+      paddingTop: '10px',
+      paddingBottom: '30px',
+      height: '100%',
+      overflow: 'hidden'
+    }}>
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={layouts}
+        onLayoutChange={handleLayoutChange}
+        onDragStop={handleDragStop}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={ROW_HEIGHT}  
+        isDraggable={true}
+        isResizable={false}
+        margin={GRID_MARGIN}
+        containerPadding={CONTAINER_PADDING}
+        draggableCancel=".MuiButton-root, .MuiIconButton-root"
+        compactType="vertical"
+        preventCollision={false} 
+        style={{
+          minHeight: 'calc(100vh - 200px)',
+          backgroundColor: 'transparent'
+        }}
+      >
+        {visibleWidgets.map((widget) => {
+          const defaultLayout = {
+            x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
+            y: Math.floor(visibleWidgets.indexOf(widget) / 3) * WIDGET_HEIGHT,
+            w: WIDGET_WIDTH,
+            h: WIDGET_HEIGHT,
+            minH: WIDGET_HEIGHT,
+            maxH: WIDGET_HEIGHT
+          };
+          
+          const existingLayout = layouts.lg.find(l => l.i === widget.id.toString());
+          
+          return (
+            <div 
+              key={widget.id}
+              data-grid={existingLayout || defaultLayout}
+              style={{
+                overflow: 'hidden',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                transition: 'box-shadow 0.3s ease'
+              }}
+            >
+              {widget.type === "status" ? (
+                <StatusCard {...widget.config} />
+              ) : widget.type === "chart" ? (
+                <ChartWidget />
+              ) : widget.type === "activity" ? (
+                <ActivityTable />
+              ) : widget.type === "labPie" ? (
+                <LabResultsPie />
+              ) : widget.type === "labBar" ? (
+                <LabTrendsBar />
+              ) : widget.type === "appointmentList" ? (
+                <UpcomingAppointments appointments={widget.config?.appointments} />
+              ) : widget.type === "prescriptionList" ? (
+                <Prescriptions prescriptions={widget.config?.prescriptions} />
+              ) : widget.type === "patientStatus" ? (
+                <PatientStatsCard {...widget.config} />
+              ) : (
+                <Card sx={{ p: 4, height: '100%' }}>
+                  <Typography>{widget.name}</Typography>
+                </Card>
+              )}
+            </div>
+          );
+        })}
+      </ResponsiveGridLayout>
+    </div>
+  ) : activeTab === 'settings' ? (
+    <Card sx={{ p: 4, height: '80%' }}>
+      <Typography variant="h4" gutterBottom>
+        Settings
+      </Typography>
+      <Typography>
+        Application settings will appear here
+      </Typography>
+    </Card>
+  ) : (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        {role === 'doctor' ? 'Patient Records' : 'Appointment History'}
+      </Typography>
+      <DynamicTable 
+        columns={role === 'doctor' ? doctorTableData.columns : patientTableData.columns}
+        data={role === 'doctor' ? doctorTableData.data : patientTableData.data}
+      />
+    </Box>
+  )}
+</Box>
       </Box>
     </Box>
   );

@@ -97,3 +97,28 @@ export const widgets = [
 }
 
 ];
+
+export const patientTableData = {
+  columns: [
+    { key: 'date', label: 'Appointment Date' },
+    { key: 'doctor', label: 'Doctor' },
+    { key: 'status', label: 'Status' },
+  ],
+  data: [
+    { date: '2025-05-15', doctor: 'Dr. Doom', status: 'Completed' },
+    { date: '2025-06-20', doctor: 'Dr. Strange', status: 'Upcoming' },
+  ],
+};
+
+export const doctorTableData = {
+  columns: [
+    { key: 'patient', label: 'Patient Name' },
+    { key: 'condition', label: 'Condition' },
+    { key: 'lastVisit', label: 'Last Visit' },
+    { key: 'nextAppointment', label: 'Next Appointment' },
+  ],
+  data: [
+    { patient: 'John Wick', condition: 'Hypertension', lastVisit: '2025-05-10', nextAppointment: '2025-07-12' },
+    { patient: 'Tony Stark', condition: 'Diabetes', lastVisit: '2025-05-15', nextAppointment: '2025-07-18' },
+  ],
+};
