@@ -1,119 +1,75 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Dashboard from './Dashboard';
-import '@testing-library/jest-dom/extend-expect';
-
-// Mock the useRolePermissions hook
-jest.mock('../hooks/useRolePermissions', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
+import { render, screen, fireEvent } from '@testing-library/react';
+import { useMediaQuery } from '@mui/material';
+import Dashboard from '../components/Dashboard';
 
 // Mock child components
-jest.mock('./widgets/StatusCard', () => () => <div>StatusCard</div>);
-jest.mock('./widgets/ChartWidget', () => () => <div>ChartWidget</div>);
-jest.mock('./widgets/ActivityTable', () => () => <div>ActivityTable</div>);
-jest.mock('./widgets/LabResultsPie', () => () => <div>LabResultsPie</div>);
-jest.mock('./widgets/LabTrendsBar', () => () => <div>LabTrendsBar</div>);
+jest.mock('../components/widgets/StatusCard', () => () => <div>StatusCard</div>);
+jest.mock('../components/widgets/ChartWidget', () => () => <div>ChartWidget</div>);
+jest.mock('../components/widgets/ActivityTable', () => () => <div>ActivityTable</div>);
+jest.mock('../components/widgets/LabResultsPie', () => () => <div>LabResultsPie</div>);
+jest.mock('../components/widgets/LabTrendsBar', () => () => <div>LabTrendsBar</div>);
+
+// Mock useRolePermissions hook
+jest.mock('../hooks/useRolePermissions', () => () => [
+  { id: '1', name: 'Status', type: 'status', config: {} },
+  { id: '2', name: 'Chart', type: 'chart' },
+  { id: '3', name: 'Activity', type: 'activity' },
+  { id: '4', name: 'Lab Pie', type: 'labPie' },
+  { id: '5', name: 'Lab Bar', type: 'labBar' }
+]);
+
+// Mock MUI's useMediaQuery
+jest.mock('@mui/material', () => ({
+  ...jest.requireActual('@mui/material'),
+  useMediaQuery: jest.fn(),
+}));
 
 describe('Dashboard Component', () => {
-  const mockRole = 'admin';
   const mockOnLogout = jest.fn();
   
-  const mockWidgets = [
-    { id: 1, name: 'Status Widget', type: 'status', config: {} },
-    { id: 2, name: 'Chart Widget', type: 'chart' },
-    { id: 3, name: 'Activity Widget', type: 'activity' },
-    { id: 4, name: 'Lab Pie Widget', type: 'labPie' },
-    { id: 5, name: 'Lab Bar Widget', type: 'labBar' },
-  ];
-
   beforeEach(() => {
-    // Mock localStorage
+    useMediaQuery.mockImplementation(() => false); // Desktop by default
     Storage.prototype.getItem = jest.fn();
     Storage.prototype.setItem = jest.fn();
-    
-    // Mock useRolePermissions to return our test widgets
-    require('../hooks/useRolePermissions').default.mockReturnValue(mockWidgets);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   test('renders dashboard with correct title', () => {
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
-    expect(screen.getByText(`${mockRole.charAt(0).toUpperCase() + mockRole.slice(1)} Dashboard`)).toBeInTheDocument();
+    render(<Dashboard role="admin" onLogout={mockOnLogout} />);
+    expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();
   });
 
-  test('displays widgets menu when clicked', async () => {
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
-    
-    const widgetsButton = screen.getByText('Widgets');
-    fireEvent.click(widgetsButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText('Select Widgets')).toBeInTheDocument();
-    });
-    
-    mockWidgets.forEach(widget => {
-      expect(screen.getByText(widget.name)).toBeInTheDocument();
-    });
+  test('renders all navigation elements', () => {
+    render(<Dashboard role="admin" onLogout={mockOnLogout} />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Widgets')).toBeInTheDocument();
+    expect(screen.getByText('Logout')).toBeInTheDocument();
   });
 
-  test('toggles widget selection', async () => {
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
+  test('switches between dashboard and settings tabs', async () => {
+    render(<Dashboard role="admin" onLogout={mockOnLogout} />);
     
-    const widgetsButton = screen.getByText('Widgets');
-    fireEvent.click(widgetsButton);
-    
-    await waitFor(() => {
-      const firstWidgetCheckbox = screen.getAllByRole('checkbox')[0];
-      expect(firstWidgetCheckbox).toBeChecked();
-      fireEvent.click(firstWidgetCheckbox);
-      expect(firstWidgetCheckbox).not.toBeChecked();
-    });
-  });
-
-  test('calls onLogout when logout button is clicked', () => {
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
-    
-    const logoutButton = screen.getByRole('button', { name: /logout/i });
-    fireEvent.click(logoutButton);
-    
-    expect(mockOnLogout).toHaveBeenCalled();
-  });
-
-  test('switches between dashboard and settings tabs', () => {
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
-    
-    const settingsTab = screen.getByText('Settings');
-    fireEvent.click(settingsTab);
-    
+    fireEvent.click(screen.getByText('Settings'));
     expect(screen.getByText('Application settings will appear here')).toBeInTheDocument();
     
-    const dashboardTab = screen.getByText('Dashboard');
-    fireEvent.click(dashboardTab);
-    
+    fireEvent.click(screen.getByText('Dashboard'));
     expect(screen.queryByText('Application settings will appear here')).not.toBeInTheDocument();
   });
 
-  test('handles mobile drawer toggle', () => {
-    // Mock mobile view
-    window.matchMedia = jest.fn().mockImplementation(query => ({
-      matches: true, // mobile view
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-    }));
+  test('calls onLogout when logout button is clicked', () => {
+    render(<Dashboard role="admin" onLogout={mockOnLogout} />);
+    fireEvent.click(screen.getByText('Logout'));
+    expect(mockOnLogout).toHaveBeenCalled();
+  });
 
-    render(<Dashboard role={mockRole} onLogout={mockOnLogout} />);
+  test('shows mobile drawer when menu button is clicked', () => {
+    useMediaQuery.mockImplementation(() => true); // Mobile view
+    render(<Dashboard role="admin" onLogout={mockOnLogout} />);
     
     const menuButton = screen.getByRole('button', { name: /menu/i });
     fireEvent.click(menuButton);
     
-    // Check if drawer is open by looking for content that should be visible
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 });

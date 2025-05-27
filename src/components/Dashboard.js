@@ -11,6 +11,9 @@ import ChartWidget from "./widgets/ChartWidget";
 import ActivityTable from "./widgets/ActivityTable";
 import LabResultsPie from "./widgets/LabResultsPie";
 import LabTrendsBar from "./widgets/LabTrendsBar";
+import PatientStatsCard from "./widgets/PatientStatsCard";
+import UpcomingAppointments from "./widgets/UpcomingAppointments";
+import Prescriptions from "./widgets/Prescriptions";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -457,7 +460,13 @@ const Dashboard = ({ role, onLogout }) => {
             <LabResultsPie />
           ) : widget.type === "labBar" ? (
             <LabTrendsBar />
-          ) : (
+          ) : widget.type === "appointmentList" ? (
+            <UpcomingAppointments appointments={widget.config?.appointments} />
+          ) : widget.type === "prescriptionList" ? (
+            <Prescriptions prescriptions={widget.config?.prescriptions} />
+          ) : widget.type === "patientStatus" ? (
+            <PatientStatsCard {...widget.config} />
+          ):(
             <Card sx={{ p: 4, height: '100%' }}>
               <Typography>{widget.name}</Typography>
             </Card>

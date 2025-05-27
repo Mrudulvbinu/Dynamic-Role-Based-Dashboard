@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button, Card, Typography, TextField, Box, InputAdornment, IconButton } from '@mui/material';
 import { Visibility, VisibilityOff, Person, Lock } from '@mui/icons-material';
+import medikImage from '../assets/medik.jpg';
+
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState("");
@@ -35,7 +37,7 @@ const Login = ({ onLogin }) => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundImage: `url(${require('../assets/medik.jpg')})`,
+      backgroundImage: `url(${medikImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundAttachment: 'fixed',
@@ -206,6 +208,11 @@ const mockUsers = [
     username: "analyst",
     password: "analyst123",
     role: "analyst"
+  },
+  {
+    username: "patient",
+    password: "patient123",
+    role: "patient"
   }
 ];
 
