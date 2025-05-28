@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef} from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -6,6 +6,8 @@ import useRolePermissions from "../hooks/useRolePermissions";
 import { Box, Card, Typography, Button, AppBar, Toolbar, Drawer, IconButton, List, ListItem, ListItemIcon, 
   ListItemText, useMediaQuery, Menu, MenuItem, Checkbox, FormControlLabel } from "@mui/material";
 import { ExitToApp, Dashboard as DashboardIcon, Menu as MenuIcon, Settings, Widgets } from "@mui/icons-material";
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import StatusCard from "./widgets/StatusCard";
 import ChartWidget from "./widgets/ChartWidget";
 import ActivityTable from "./widgets/ActivityTable";
@@ -17,6 +19,8 @@ import Prescriptions from "./widgets/Prescriptions";
 import TableChartIcon from '@mui/icons-material/TableChart';
 import DynamicTable from "./DynamicTable";
 import { patientTableData, doctorTableData } from "../mockData";
+import FormBuilder from './formbuilder/FormBuilder';
+import SavedForms from './formbuilder/SavedForms';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -35,37 +39,44 @@ const Dashboard = ({ role, onLogout, user }) => {
   const [selectedWidgets, setSelectedWidgets] = useState([]);
   const [layouts, setLayouts] = useState({ lg: [] });
   const [widgetMenuAnchor, setWidgetMenuAnchor] = useState(null);
+  const initialized = useRef(false);
 
-  useEffect(() => {
-    const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
-    const savedLayouts = localStorage.getItem(`dashboardLayout-${role}`);
-    
-    const initialWidgets = savedWidgets 
-      ? JSON.parse(savedWidgets) 
-      : allWidgets.map(w => w.id);
-      
-    const calculateInitialLayout = (widgets) => {
-      return widgets.map((widget, index) => ({
-        i: widget.id.toString(),
-        x: (index % 3) * WIDGET_WIDTH, 
-        y: Math.floor(index / 3) * WIDGET_HEIGHT,
-        w: WIDGET_WIDTH,
-        h: WIDGET_HEIGHT,
-        minW: WIDGET_WIDTH,
-        maxW: WIDGET_WIDTH,
-        minH: WIDGET_HEIGHT,
-        maxH: WIDGET_HEIGHT,
-        isResizable: false
-      }));
-    };
 
-    const initialLayouts = savedLayouts 
-      ? JSON.parse(savedLayouts)
-      : { lg: calculateInitialLayout(allWidgets.filter(w => initialWidgets.includes(w.id))) };
+ useEffect(() => {
+  console.log("Initializing dashboard layout...", initialized.current);
+  if (!allWidgets || initialized.current) return;
 
-    setSelectedWidgets(initialWidgets);
-    setLayouts(initialLayouts);
-  }, [role, allWidgets]);
+  const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
+  const savedLayouts = localStorage.getItem(`dashboardLayout-${role}`);
+
+  const initialWidgets = savedWidgets
+    ? JSON.parse(savedWidgets)
+    : allWidgets.map(w => w.id);
+
+  const calculateInitialLayout = (widgets) => {
+    return widgets.map((widget, index) => ({
+      i: widget.id.toString(),
+      x: (index % 3) * WIDGET_WIDTH,
+      y: Math.floor(index / 3) * WIDGET_HEIGHT,
+      w: WIDGET_WIDTH,
+      h: WIDGET_HEIGHT,
+      minW: WIDGET_WIDTH,
+      maxW: WIDGET_WIDTH,
+      minH: WIDGET_HEIGHT,
+      maxH: WIDGET_HEIGHT,
+      isResizable: false
+    }));
+  };
+
+  const initialLayouts = savedLayouts
+    ? JSON.parse(savedLayouts)
+    : { lg: calculateInitialLayout(allWidgets.filter(w => initialWidgets.includes(w.id))) };
+
+  setSelectedWidgets(initialWidgets);
+  setLayouts(initialLayouts);
+  initialized.current = true;
+}, [role, allWidgets]);
+
 
   const handleToggleWidget = (widgetId) => {
     const newSelection = selectedWidgets.includes(widgetId)
@@ -157,6 +168,8 @@ const Dashboard = ({ role, onLogout, user }) => {
   <Box
     sx={{
       height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
       backdropFilter: 'blur(6px)',
       backgroundColor: 'rgba(255, 255, 255, 0.86)',
       boxShadow: '0 8px 32px rgba(14, 17, 71, 0.37)',
@@ -164,7 +177,8 @@ const Dashboard = ({ role, onLogout, user }) => {
       background: 'linear-gradient(120deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.89) 100%)',
     }}
   >
-    <List sx={{ pt: 0 }}>
+    <List sx={{ pt: 0, flexGrow: 1 }}>
+      {/* Dashboard Item */}
       <ListItem 
         button 
         selected={activeTab === 'dashboard'}
@@ -173,11 +187,10 @@ const Dashboard = ({ role, onLogout, user }) => {
           mt: '64px',
           backgroundColor: activeTab === 'dashboard' ? '#0059b3' : 'transparent',
           color: activeTab === 'dashboard' ? 'white' : 'black',
-          borderRadius:'10px',
+          borderRadius: '10px',
           '&:hover': {
             backgroundColor: 'white',
             color: 'black',
-            borderRadius:'10px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
             transform: 'scale(1.01)',
             '& .MuiListItemIcon-root': {
@@ -203,44 +216,122 @@ const Dashboard = ({ role, onLogout, user }) => {
         />
       </ListItem>
 
-
+       {/* Data Table Button (role-specific) */}
       <ListItem 
-  button 
-  selected={activeTab === 'dataTable'}
-  onClick={() => setActiveTab('dataTable')}
-  sx={{
-    display: role === 'doctor' || role === 'patient' ? 'flex' : 'none',
-    backgroundColor: activeTab === 'dataTable' ? '#0059b3' : 'transparent',
-    color: activeTab === 'dataTable' ? 'white' : 'black',
-    borderRadius:'10px',
-    '&:hover': {
-      backgroundColor: 'white',
-      color: 'black',
-      borderRadius:'10px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-      transform: 'scale(1.01)',
-      '& .MuiListItemIcon-root': { color: 'black' },
-    },
-    transition: 'all 0.3s ease',
-  }}
->
-  <ListItemIcon sx={{ 
-    color: activeTab === 'dataTable' ? 'white' : 'black',
-    minWidth: '40px',
-    transition: 'color 0.3s ease',
-  }}>
-    <TableChartIcon />
-  </ListItemIcon>
-  <ListItemText 
-    primary="Data Table" 
-    primaryTypographyProps={{ 
-      fontWeight: 'bold',
-      fontFamily: '"Poppins", sans-serif',
-    }} 
-  />
-</ListItem>
+        button 
+        selected={activeTab === 'dataTable'}
+        onClick={() => setActiveTab('dataTable')}
+        sx={{
+          display: role === 'doctor' || role === 'patient' ? 'flex' : 'none',
+          backgroundColor: activeTab === 'dataTable' ? '#0059b3' : 'transparent',
+          color: activeTab === 'dataTable' ? 'white' : 'black',
+          borderRadius: '10px',
+          '&:hover': {
+            backgroundColor: 'white',
+            color: 'black',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+            transform: 'scale(1.01)',
+            '& .MuiListItemIcon-root': { color: 'black' },
+          },
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <ListItemIcon sx={{ 
+          color: activeTab === 'dataTable' ? 'white' : 'black',
+          minWidth: '40px',
+          transition: 'color 0.3s ease',
+        }}>
+          <TableChartIcon />
+        </ListItemIcon>
+        <ListItemText 
+          primary="Data Table" 
+          primaryTypographyProps={{ 
+            fontWeight: 'bold',
+            fontFamily: '"Poppins", sans-serif',
+          }} 
+        />
+      </ListItem>
 
+      {/* Form+ Button */}
+      <ListItem 
+        button 
+        selected={activeTab === 'formPlus'}
+        onClick={() => setActiveTab('formPlus')}
+        sx={{
+          display: role === 'admin' ? 'flex' : 'none',
+          backgroundColor: activeTab === 'formPlus' ? '#0059b3' : 'transparent',
+          color: activeTab === 'formPlus' ? 'white' : 'black',
+          borderRadius: '10px',
+          '&:hover': {
+            backgroundColor: 'white',
+            color: 'black',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+            transform: 'scale(1.01)',
+            '& .MuiListItemIcon-root': {
+              color: 'black',
+            },
+          },
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <ListItemIcon sx={{ 
+          color: activeTab === 'formPlus' ? 'white' : 'black',
+          minWidth: '40px',
+          transition: 'color 0.3s ease',
+        }}>
+          <NoteAddIcon />
+        </ListItemIcon>
+        <ListItemText 
+          primary="Form+" 
+          primaryTypographyProps={{ 
+            fontWeight: 'bold',
+            fontFamily: '"Poppins", sans-serif',
+          }} 
+        />
+      </ListItem>
 
+      {/* Forms Button */}
+      <ListItem 
+        button 
+        selected={activeTab === 'forms'}
+        onClick={() => setActiveTab('forms')}
+        sx={{
+          display: role === 'admin' ? 'flex' : 'none',
+          backgroundColor: activeTab === 'forms' ? '#0059b3' : 'transparent',
+          color: activeTab === 'forms' ? 'white' : 'black',
+          borderRadius: '10px',
+          '&:hover': {
+            backgroundColor: 'white',
+            color: 'black',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+            transform: 'scale(1.01)',
+            '& .MuiListItemIcon-root': {
+              color: 'black',
+            },
+          },
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <ListItemIcon sx={{ 
+          color: activeTab === 'forms' ? 'white' : 'black',
+          minWidth: '40px',
+          transition: 'color 0.3s ease',
+        }}>
+          <ListAltIcon /> 
+        </ListItemIcon>
+        <ListItemText 
+          primary="Forms" 
+          primaryTypographyProps={{ 
+            fontWeight: 'bold',
+            fontFamily: '"Poppins", sans-serif',
+          }} 
+        />
+      </ListItem>
+
+    </List>
+
+    {/* Settings Button (at bottom) */}
+    <List sx={{ pb: 2 }}>
       <ListItem 
         button 
         selected={activeTab === 'settings'}
@@ -248,11 +339,10 @@ const Dashboard = ({ role, onLogout, user }) => {
         sx={{
           backgroundColor: activeTab === 'settings' ? '#0059b3' : 'transparent',
           color: activeTab === 'settings' ? 'white' : 'black',
-          borderRadius:'10px',
+          borderRadius: '10px',
           '&:hover': {
             backgroundColor: 'white',
             color: 'black',
-            borderRadius:'10px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
             transform: 'scale(1.01)',
             '& .MuiListItemIcon-root': {
@@ -540,6 +630,20 @@ const Dashboard = ({ role, onLogout, user }) => {
         Application settings will appear here
       </Typography>
     </Card>
+  ) : activeTab === 'formPlus' ? (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+        Form Builder
+      </Typography>
+      <FormBuilder />
+    </Box>
+  ) : activeTab === 'forms' ? (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+        Saved Forms
+      </Typography>
+      <SavedForms />
+    </Box>
   ) : (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
