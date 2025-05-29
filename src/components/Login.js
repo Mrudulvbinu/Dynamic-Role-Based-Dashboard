@@ -1,8 +1,15 @@
-import { useState } from 'react';
-import { Button, Card, Typography, TextField, Box, InputAdornment, IconButton } from '@mui/material';
-import { Visibility, VisibilityOff, Person, Lock } from '@mui/icons-material';
-import medikImage from '../assets/medik.jpg';
-
+import { useState } from "react";
+import {
+  Button,
+  Card,
+  Typography,
+  TextField,
+  Box,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import { Visibility, VisibilityOff, Person, Lock } from "@mui/icons-material";
+import medikImage from "../assets/medik.jpg";
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState("");
@@ -12,100 +19,109 @@ const Login = ({ onLogin }) => {
 
   const handleLogin = () => {
     const user = mockUsers.find(
-      u => u.username.toLowerCase() === username.toLowerCase() && 
-           u.password === password
+      (u) =>
+        u.username.toLowerCase() === username.toLowerCase() &&
+        u.password === password
     );
 
     if (user) {
       setError("");
-      onLogin(user.role); 
+      localStorage.setItem("userRole", user.role);
+      onLogin(user.role);
     } else {
       setError("Invalid username or password");
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleLogin();
     }
   };
 
   return (
-    <Box sx={{
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundImage: `url(${medikImage})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      overflow: 'hidden', 
-      p: 2
-    }}>
-        
+    <Box
+      sx={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundImage: `url(${medikImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: "hidden",
+        p: 2,
+      }}
+    >
       {/* Top-left logo */}
-      <Box sx={{
-        position: 'absolute',
-        top: 5,
-        left: 20
-      }}>
-        <img 
-          src={require('../assets/icon.png')} 
-          alt="Hospital Logo" 
-          style={{ 
-            height: '120px',
-            width: 'auto'
-          }} 
+      <Box
+        sx={{
+          position: "absolute",
+          top: 5,
+          left: 20,
+        }}
+      >
+        <img
+          src={require("../assets/icon.png")}
+          alt="Hospital Logo"
+          style={{
+            height: "120px",
+            width: "auto",
+          }}
         />
       </Box>
 
       {/* Main content */}
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 400,
-        position: 'relative',
-        zIndex: 1, 
-      }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          maxWidth: 400,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
         <Typography
           variant="h3"
           sx={{
             mb: 2,
-            color: 'black',
+            color: "black",
             fontFamily: '"Poppins", sans-serif',
-            fontWeight: 'bold',
-            letterSpacing: '1px',
-            textAlign: 'center',
-            fontSize: { xs: '2rem', sm: '2.5rem' }
+            fontWeight: "bold",
+            letterSpacing: "1px",
+            textAlign: "center",
+            fontSize: { xs: "2rem", sm: "2.5rem" },
           }}
         >
           CABOT HOSPITAL
         </Typography>
 
-        <Card sx={{
-          p: 4,
-          width: '100%',
-          borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)'
-        }}>
-          <Typography 
-            variant="h5" 
-            gutterBottom 
+        <Card
+          sx={{
+            p: 4,
+            width: "100%",
+            borderRadius: "12px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+          }}
+        >
+          <Typography
+            variant="h5"
+            gutterBottom
             align="center"
             sx={{
               fontFamily: '"Poppins", sans-serif',
-              fontWeight: 'bold',
-              mb: 2
+              fontWeight: "bold",
+              mb: 2,
             }}
           >
             Login
@@ -167,16 +183,16 @@ const Login = ({ onLogin }) => {
             disabled={!username || !password}
             sx={{
               py: 1.5,
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              borderRadius: '8px',
+              fontSize: "1rem",
+              fontWeight: "bold",
+              borderRadius: "8px",
               fontFamily: '"Poppins", sans-serif',
-              background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              background: "linear-gradient(45deg, #1976d2 30%, #2196f3 90%)",
+              "&:hover": {
+                transform: "translateY(-2px)",
+                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
               },
-              transition: 'all 0.3s ease',
+              transition: "all 0.3s ease",
             }}
           >
             LOGIN
@@ -192,28 +208,28 @@ const mockUsers = [
   {
     username: "admin",
     password: "admin123",
-    role: "admin"
+    role: "admin",
   },
   {
     username: "doctor",
     password: "doctor123",
-    role: "doctor"
+    role: "doctor",
   },
   {
     username: "nurse",
     password: "nurse123",
-    role: "nurse"
+    role: "nurse",
   },
   {
     username: "analyst",
     password: "analyst123",
-    role: "analyst"
+    role: "analyst",
   },
   {
     username: "patient",
     password: "patient123",
-    role: "patient"
-  }
+    role: "patient",
+  },
 ];
 
 export default Login;

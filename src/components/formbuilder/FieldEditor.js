@@ -1,10 +1,16 @@
-import React from 'react';
-import { Box, TextField, Typography, Checkbox, FormControlLabel } from '@mui/material';
+import React from "react";
+import {
+  Box,
+  TextField,
+  Typography,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material";
 
 const FieldEditor = ({ selectedField, updateField }) => {
   if (!selectedField) {
     return (
-      <Box sx={{ width: 300, p: 2, borderLeft: '1px solid #eee' }}>
+      <Box sx={{ width: 300, p: 2, borderLeft: "1px solid #eee" }}>
         <Typography>Select a field to edit</Typography>
       </Box>
     );
@@ -13,12 +19,12 @@ const FieldEditor = ({ selectedField, updateField }) => {
   const handleChange = (e) => {
     updateField({
       ...selectedField,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   return (
-    <Box sx={{ width: 300, p: 2, borderLeft: '1px solid #eee' }}>
+    <Box sx={{ width: 300, p: 2, borderLeft: "1px solid #eee" }}>
       <Typography variant="h6">Field Properties</Typography>
       <TextField
         name="label"
@@ -33,10 +39,12 @@ const FieldEditor = ({ selectedField, updateField }) => {
           <Checkbox
             name="required"
             checked={selectedField.required}
-            onChange={(e) => updateField({
-              ...selectedField,
-              required: e.target.checked
-            })}
+            onChange={(e) =>
+              updateField({
+                ...selectedField,
+                required: e.target.checked,
+              })
+            }
           />
         }
         label="Required"

@@ -1,4 +1,4 @@
-import { TextField as MuiTextField } from '@mui/material';
+import { TextField as MuiTextField } from "@mui/material";
 
 const TextField = ({ field, control }) => {
   return (
@@ -11,7 +11,7 @@ const TextField = ({ field, control }) => {
           required={field.required}
           fullWidth
           margin="normal"
-          value={value || ''}
+          value={value || ""}
           onChange={onChange}
         />
       )}
