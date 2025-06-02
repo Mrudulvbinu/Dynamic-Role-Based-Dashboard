@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -16,7 +16,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  useMediaQuery,
   Menu,
   MenuItem,
   Checkbox,
@@ -55,10 +54,10 @@ const CONTAINER_PADDING = [20, 30];
 const GRID_MARGIN = [20, 20];
 
 const Dashboard = ({ role = "user", onLogout, user }) => {
-  const isMobile = useMediaQuery("(max-width:600px)");
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const allWidgets = useRolePermissions(role) || [];
+  const rawWidgets = useRolePermissions(role);
+  const allWidgets = useMemo(() => rawWidgets || [], [rawWidgets]);
   const [selectedWidgets, setSelectedWidgets] = useState([]);
   const [layouts, setLayouts] = useState({ lg: [] });
   const [widgetMenuAnchor, setWidgetMenuAnchor] = useState(null);
@@ -222,7 +221,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
   };
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    setSidebarOpen((prev) => !prev);
   };
 
   const handleWidgetMenuOpen = (event) => {
@@ -523,22 +522,26 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: "flex", flexGrow: 1, pt: "65px" }}>
-        {!isMobile && (
+      <Box sx={{ display: "flex" }}>
+        {/* Sidebar */}
+        {sidebarOpen && (
           <Box
+            component="nav"
             sx={{
               width: drawerWidth,
-              flexShrink: 80,
+              flexShrink: 15,
+              transition: "all 0.5s ease",
             }}
           >
             <Drawer
-              variant="permanent"
-              open
-              sx={{
-                "& .MuiDrawer-paper": {
+              variant="persistent"
+              anchor="left"
+              open={sidebarOpen}
+              PaperProps={{
+                sx: {
                   width: drawerWidth,
-                  top: "64px",
-                  height: "calc(100vh - 64px)",
+                  top: "60px",
+                  height: "calc(100vh - 60px)",
                   overflow: "hidden",
                   borderRight: "none",
                   background: "transparent",
@@ -550,38 +553,15 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
           </Box>
         )}
 
-        {isMobile && (
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true,
-            }}
-            sx={{
-              "& .MuiDrawer-paper": {
-                width: drawerWidth,
-                top: "64px",
-                height: "calc(100vh - 64px)",
-                overflow: "hidden",
-                borderRight: "none",
-                background: "transparent",
-              },
-            }}
-          >
-            {drawer}
-          </Drawer>
-        )}
-
+        {/* Main Content */}
         <Box
           component="main"
           sx={{
-            flexGrow: 1,
-            p: 4,
-            width: isMobile ? "100%" : `calc(100% - ${drawerWidth}px)`,
-            ml: isMobile ? 0 : `${drawerWidth}px`,
-            transition: "margin 225ms cubic-bezier(0, 0, 0.2, 1) 0ms",
-            paddingTop: "20px",
+            flexGrow: 2,
+            marginLeft: sidebarOpen ? `${drawerWidth}px` : 0,
+            width: sidebarOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
+            transition: "all 0.3s ease",
+            paddingTop: "80px",
             paddingBottom: "40px",
           }}
         >
@@ -647,14 +627,16 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
               </ResponsiveGridLayout>
             </div>
           ) : activeTab === "settings" ? (
-            <Card sx={{ p: 4, height: "80%" }}>
-              <Typography variant="h3" gutterBottom>
-                Settings
-              </Typography>
-              <Typography sx={{ p: 3 }} variant="h5">
-                Application settings will appear here
-              </Typography>
-            </Card>
+            <Box sx={{ pr: 7, pl: 7 }}>
+              <Card sx={{ p: 4, height: "100%" }}>
+                <Typography variant="h4" gutterBottom>
+                  Settings
+                </Typography>
+                <Typography sx={{ p: 3 }} variant="h5">
+                  Application settings will appear here
+                </Typography>
+              </Card>
+            </Box>
           ) : activeTab === "formPlus" ? (
             <Box sx={{ p: 3 }}>
               <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
