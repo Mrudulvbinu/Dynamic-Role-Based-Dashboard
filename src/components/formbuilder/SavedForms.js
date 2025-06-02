@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -10,25 +10,20 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
-  Paper,
-  Divider,
 } from "@mui/material";
+
+import FormPreview from "./FormPreview";
+import PrintableForm from "./PrintableForm";
 
 const SavedForms = ({ setActiveTab }) => {
   const [forms, setForms] = useState([]);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openPreviewDialog, setOpenPreviewDialog] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState(null);
-  const [previewForm, setPreviewForm] = useState(null);
+  const [selectedForm, setSelectedForm] = useState(null);
 
-  const printRef = useRef();
-
-  const handleEdit = (formId) => {
-    localStorage.setItem("formToEdit", formId);
-    setActiveTab("formPlus");
-  };
+  const [openLivePreview, setOpenLivePreview] = useState(false);
+  const [openPrintablePreview, setOpenPrintablePreview] = useState(false);
 
   useEffect(() => {
     const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
@@ -38,9 +33,13 @@ const SavedForms = ({ setActiveTab }) => {
         ? form.fields.filter((field) => field && field.label)
         : [],
     }));
-    console.log("Loaded sanitized forms:", sanitizedForms);
     setForms(sanitizedForms);
   }, []);
+
+  const handleEdit = (formId) => {
+    localStorage.setItem("formToEdit", formId);
+    setActiveTab("formPlus");
+  };
 
   const handleDeleteClick = (id) => {
     setSelectedFormId(id);
@@ -61,37 +60,21 @@ const SavedForms = ({ setActiveTab }) => {
   };
 
   const handlePreview = (form) => {
-    setPreviewForm(form);
-    setOpenPreviewDialog(true);
-  };
-
-  const handleClosePreview = () => {
-    setPreviewForm(null);
-    setOpenPreviewDialog(false);
+    setSelectedForm(form);
+    setOpenLivePreview(true);
   };
 
   const handlePrint = () => {
-    const content = printRef.current;
-    const pri = window.open("", "_blank");
-    pri.document.write(`
-      <html>
-        <head>
-          <title>Form Preview</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .field-box { border: 1px solid #000; padding: 10px; margin-bottom: 10px; }
-            h2, h4 { color: #2a2a2a; }
-          </style>
-        </head>
-        <body>
-          ${content.innerHTML}
-        </body>
-      </html>
-    `);
-    pri.document.close();
-    pri.focus();
-    pri.print();
-    pri.close();
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(
+      "<html><head><title>Print Form</title></head><body>"
+    );
+    printWindow.document.write(
+      document.getElementById("printable-area").innerHTML
+    );
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const FormCard = ({ form }) => (
@@ -101,6 +84,10 @@ const SavedForms = ({ setActiveTab }) => {
         <Typography variant="body1" color="text.secondary">
           {form.fields.length} fields
         </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {form.fields.length} fields
+        </Typography>
+
         {form.createdAt && (
           <Typography variant="caption" color="text.secondary">
             Created: {new Date(form.createdAt).toLocaleString()}
@@ -147,10 +134,10 @@ const SavedForms = ({ setActiveTab }) => {
       <Dialog open={openDeleteDialog} onClose={handleCancelDelete}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <Typography>
             Are you sure you want to delete this form? This action cannot be
             undone.
-          </DialogContentText>
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelDelete} color="error">
@@ -162,61 +149,50 @@ const SavedForms = ({ setActiveTab }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Form Preview Dialog */}
+      {/* Live Preview Dialog */}
       <Dialog
-        open={openPreviewDialog}
-        onClose={handleClosePreview}
+        open={openLivePreview}
+        onClose={() => setOpenLivePreview(false)}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Form Preview</DialogTitle>
+        <DialogTitle>Live Form Preview</DialogTitle>
         <DialogContent>
-          <div ref={printRef}>
-            {previewForm && (
-              <Paper
-                elevation={3}
-                sx={{ padding: 3, mb: 2, border: "1px solid #ccc" }}
-              >
-                <Typography variant="h5" gutterBottom>
-                  {previewForm.title}
-                </Typography>
-                {previewForm.description && (
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                    {previewForm.description}
-                  </Typography>
-                )}
-                <Divider sx={{ mb: 2 }} />
-                {previewForm.fields.map((field, idx) => {
-                  if (!field || !field.label) return null; // Skip invalid fields
-                  return (
-                    <Box
-                      key={idx}
-                      className="field-box"
-                      sx={{
-                        border: "1px solid #333",
-                        borderRadius: 1,
-                        padding: 2,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle1">
-                        <strong>{field.label}</strong>
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Field Type: {field.type}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Paper>
-            )}
+          <FormPreview form={selectedForm} />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenLivePreview(false);
+              setOpenPrintablePreview(true);
+            }}
+            color="primary"
+            variant="outlined"
+          >
+            Print Form
+          </Button>
+          <Button onClick={() => setOpenLivePreview(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Printable Preview Dialog */}
+      <Dialog
+        open={openPrintablePreview}
+        onClose={() => setOpenPrintablePreview(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Print Preview</DialogTitle>
+        <DialogContent>
+          <div id="printable-area">
+            <PrintableForm form={selectedForm} />
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handlePrint} color="primary" variant="outlined">
-            Print to PDF
+          <Button onClick={handlePrint} color="primary" variant="contained">
+            Print Now
           </Button>
-          <Button onClick={handleClosePreview}>Close</Button>
+          <Button onClick={() => setOpenPrintablePreview(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

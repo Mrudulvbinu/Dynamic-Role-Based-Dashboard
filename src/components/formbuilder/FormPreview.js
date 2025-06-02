@@ -1,41 +1,112 @@
 import React from "react";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { Button, Box } from "@mui/material";
-import FieldComponent from "./FieldComponent";
+import {
+  Box,
+  Typography,
+  TextField,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel,
+  Checkbox,
+} from "@mui/material";
 
-const FormPreview = ({ fields }) => {
-  const validationSchema = yup.object().shape(
-    fields.reduce((schema, field) => {
-      if (field.required) {
-        schema[field.id] = yup.mixed().required(`${field.label} is required`);
-      }
-      return schema;
-    }, {})
-  );
-
-  const { control, handleSubmit } = useForm({
-    resolver: yupResolver(validationSchema),
-  });
-
-  const onSubmit = (data) => {
-    console.log("Form submitted:", data);
-    alert(JSON.stringify(data, null, 2));
-  };
-
+const FormPreview = ({ form }) => {
   return (
-    <Box sx={{ mt: 4 }}>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {fields.map((field) => (
-          <Box key={field.id} sx={{ mb: 2 }}>
-            <FieldComponent field={field} control={control} />
-          </Box>
-        ))}
-        <Button variant="contained" type="submit">
-          Submit
-        </Button>
-      </form>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h5" gutterBottom>
+        {form?.title || "Untitled Form"}
+      </Typography>
+      <Box
+        component="form"
+        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+      >
+        {form?.fields?.map((field, index) => {
+          if (!field || !field.label) return null;
+
+          switch (field.type) {
+            case "text":
+              return (
+                <TextField
+                  key={index}
+                  label={field.label}
+                  variant="outlined"
+                  fullWidth
+                />
+              );
+
+            case "textarea":
+              return (
+                <TextField
+                  key={index}
+                  label={field.label}
+                  variant="outlined"
+                  multiline
+                  rows={4}
+                  fullWidth
+                />
+              );
+
+            case "select":
+              return (
+                <TextField key={index} label={field.label} select fullWidth>
+                  {field.options?.map((option, i) => (
+                    <MenuItem key={i} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              );
+
+            case "radio":
+              return (
+                <Box key={index}>
+                  <FormLabel>{field.label}</FormLabel>
+                  <RadioGroup row>
+                    {field.options?.map((option, i) => (
+                      <FormControlLabel
+                        key={i}
+                        value={option}
+                        control={<Radio />}
+                        label={option}
+                      />
+                    ))}
+                  </RadioGroup>
+                </Box>
+              );
+
+            case "checkbox":
+              return (
+                <Box key={index}>
+                  <FormLabel>{field.label}</FormLabel>
+                  <Box>
+                    {field.options?.map((option, i) => (
+                      <FormControlLabel
+                        key={i}
+                        control={<Checkbox />}
+                        label={option}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              );
+
+            case "date":
+              return (
+                <TextField
+                  key={index}
+                  label={field.label}
+                  type="date"
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                />
+              );
+
+            default:
+              return null;
+          }
+        })}
+      </Box>
     </Box>
   );
 };

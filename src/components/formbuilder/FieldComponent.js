@@ -4,7 +4,6 @@ import DropdownField from "./fields/DropdownField";
 import CheckboxField from "./fields/CheckboxField";
 import DateField from "./fields/DateField";
 import RadioButton from "./fields/RadioButton";
-import Label from "./fields/Label";
 
 const fieldMap = {
   textfield: TextField,
@@ -12,7 +11,6 @@ const fieldMap = {
   checkbox: CheckboxField,
   date: DateField,
   radio: RadioButton,
-  label: Label,
 };
 
 const FieldComponent = ({ field, control }) => {

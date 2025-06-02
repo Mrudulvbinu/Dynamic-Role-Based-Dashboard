@@ -1,93 +1,84 @@
 import React from "react";
-import GridLayout from "react-grid-layout";
-import { Box, IconButton } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
+
+// custom MUI field components
 import TextField from "./fields/TextField";
-import DropdownField from "./fields/DropdownField";
 import CheckboxField from "./fields/CheckboxField";
-import DateField from "./fields/DateField";
+import DropdownField from "./fields/DropdownField";
 import RadioButton from "./fields/RadioButton";
-import Label from "./fields/Label";
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DateField from "./fields/DateField";
 
-const fieldComponentMap = {
-  textfield: TextField,
-  dropdown: DropdownField,
-  checkbox: CheckboxField,
-  date: DateField,
-  radio: RadioButton,
-  label: Label,
-};
+const FormCanvas = ({ fields, onSelectField, addField }) => {
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const fieldType = e.dataTransfer.getData("fieldType");
+    if (fieldType) {
+      addField(fieldType);
+    }
+  };
 
-const FormCanvas = ({ fields, setFields, setSelectedField, deleteField }) => {
-  const handleLayoutChange = (layout) => {
-    const updatedFields = fields.map((field) => {
-      const layoutItem = layout.find((item) => item.i === field.id);
-      return {
-        ...field,
-        x: layoutItem?.x ?? 0,
-        y: layoutItem?.y ?? 0,
-        w: layoutItem?.w ?? 4,
-        h: layoutItem?.h ?? 1,
-      };
-    });
-    setFields(updatedFields);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const renderField = (field) => {
+    const previewProps = { field, isPreview: true };
+
+    switch (field.type) {
+      case "text":
+      case "textfield":
+        return <TextField {...previewProps} />;
+      case "dropdown":
+        return <DropdownField {...previewProps} />;
+      case "checkbox":
+        return <CheckboxField {...previewProps} />;
+      case "radio":
+        return <RadioButton {...previewProps} />;
+      case "date":
+        return <DateField {...previewProps} />;
+      default:
+        return <TextField {...previewProps} />;
+    }
   };
 
   return (
-    <Box sx={{ flex: 1, p: 2, border: "1px solid #ccc", minHeight: "400px" }}>
-      <GridLayout
-        className="layout"
-        layout={fields
-          .filter((f) => f && f.id)
-          .map((f) => ({
-            i: f.id,
-            x: f.x ?? 0,
-            y: typeof f.y === "number" ? f.y : 0,
-            w: f.w ?? 4,
-            h: f.h ?? 1,
-          }))}
-        cols={12}
-        rowHeight={60}
-        width={800}
-        isDraggable
-        isResizable
-        onLayoutChange={handleLayoutChange}
-      >
-        {fields
-          .filter((field) => field && field.id)
-          .map((field) => {
-            const Component = fieldComponentMap[field.type];
-            if (!Component) return null;
-            return (
-              <div
-                key={field.id}
-                onClick={() => setSelectedField(field)}
-                style={{ position: "relative" }}
-              >
-                <Component field={field} />
-                <IconButton
-                  aria-label="delete"
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent select on delete
-                    deleteField(field.id);
-                  }}
-                  sx={{
-                    position: "absolute",
-                    top: 2,
-                    right: 2,
-                    backgroundColor: "rgba(255,255,255,0.7)",
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </div>
-            );
-          })}
-      </GridLayout>
-    </Box>
+    <Paper
+      elevation={3}
+      sx={{
+        p: 3,
+        border: "7px dashed #ccc",
+        maxHeight: "500px",
+        overflowY: "auto",
+        width: "100%",
+      }}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
+      {fields.length === 0 ? (
+        <Typography variant="body2" color="textSecondary" align="center">
+          Drag fields here to build your form.
+        </Typography>
+      ) : (
+        fields.map((field) => (
+          <Box
+            key={field.id}
+            onClick={() => onSelectField(field)}
+            sx={{
+              cursor: "pointer",
+              border: "1px solid #eee",
+              borderRadius: 1,
+              p: 1,
+              mb: 1,
+              "&:hover": {
+                backgroundColor: "#f5f5f5",
+              },
+            }}
+          >
+            {renderField(field)}
+          </Box>
+        ))
+      )}
+    </Paper>
   );
 };
 

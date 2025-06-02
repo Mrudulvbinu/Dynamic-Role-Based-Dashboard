@@ -3,24 +3,27 @@ import { Controller, useFormContext } from "react-hook-form";
 import { TextField as MuiTextField } from "@mui/material";
 import PropTypes from "prop-types";
 
-const TextField = ({ field, control: propControl }) => {
+const TextField = ({ field, control: propControl, isPreview = false }) => {
   const context = useFormContext();
   const control = propControl || context?.control;
-  if (!control) {
+
+  if (!control || isPreview) {
+    // Read-only preview mode
     return (
       <MuiTextField
         fullWidth
         label={field.label || "Text Field"}
+        value={field.defaultValue || ""}
         disabled
-        value=""
         margin="normal"
         variant="outlined"
         sx={{ mb: 2 }}
+        placeholder={field.placeholder}
       />
     );
   }
 
-  // Form preview/edit mode (with control)
+  // Controlled form field with react-hook-form
   return (
     <Controller
       name={field.id}
@@ -70,6 +73,7 @@ TextField.propTypes = {
     validationRules: PropTypes.object,
   }).isRequired,
   control: PropTypes.object,
+  isPreview: PropTypes.bool,
 };
 
 export default TextField;

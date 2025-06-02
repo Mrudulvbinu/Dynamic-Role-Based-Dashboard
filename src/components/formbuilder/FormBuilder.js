@@ -1,220 +1,238 @@
 import React, { useState, useEffect } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { v4 as uuidv4 } from "uuid";
 import {
-  Box,
-  Button,
-  Snackbar,
-  Alert,
-  Typography,
   TextField,
+  Button,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Typography,
+  Box,
+  Paper,
+  Divider,
 } from "@mui/material";
-import FormFieldsList from "./FormFieldsList";
-import FormCanvas from "./FormCanvas";
-import FieldEditor from "./FieldEditor";
+import { v4 as uuidv4 } from "uuid";
 
-const FormBuilder = ({ onCancelEdit = () => {} }) => {
-  const [form, setForm] = useState({
-    id: "",
-    title: "Untitled Form",
-    description: "",
-    fields: [],
-    createdAt: "",
-    updatedAt: "",
+const FormBuilder = ({ setActiveTab }) => {
+  const [formTitle, setFormTitle] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [fields, setFields] = useState([]);
+  const [editingFormId, setEditingFormId] = useState(null);
+  const [newField, setNewField] = useState({
+    label: "",
+    type: "text",
+    required: false,
+    options: "",
   });
-  const [lastAction, setLastAction] = useState("");
-  const [selectedField, setSelectedField] = useState(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const editFormId = localStorage.getItem("formToEdit");
-    if (editFormId) {
-      const savedForms = JSON.parse(localStorage.getItem("forms") || "[]");
-      const formToEdit = savedForms.find((f) => f.id === editFormId);
+    const editingId = localStorage.getItem("formToEdit");
+    if (editingId) {
+      const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
+      const formToEdit = savedForms.find((form) => form.id === editingId);
       if (formToEdit) {
-        setForm(formToEdit);
-        setIsEditing(true);
+        setFormTitle(formToEdit.title);
+        setFormDescription(formToEdit.description);
+        setFields(formToEdit.fields);
+        setEditingFormId(formToEdit.id);
       }
+      localStorage.removeItem("formToEdit");
     }
   }, []);
 
-  const addField = (type) => {
-    const newField = {
+  const handleAddField = () => {
+    if (!newField.label.trim()) return;
+
+    const processedField = {
+      ...newField,
       id: uuidv4(),
-      type,
-      label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      required: false,
-      ...(type === "dropdown" && { options: ["Option 1"] }),
-      ...(type === "checkbox" && { checked: false }),
-      x: 0,
-      y: 0,
-      w: 4,
-      h: 1,
     };
-    setForm((prev) => ({
-      ...prev,
-      fields: [...prev.fields, newField],
-    }));
-  };
 
-  const updateField = (updatedField) => {
-    setForm((prev) => ({
-      ...prev,
-      fields: prev.fields.map((field) =>
-        field.id === updatedField.id ? updatedField : field
-      ),
-    }));
-  };
-
-  const updateFields = (newFields) => {
-    setForm((prev) => ({
-      ...prev,
-      fields: newFields,
-    }));
-  };
-
-  const deleteField = (fieldId) => {
-    setForm((prev) => ({
-      ...prev,
-      fields: prev.fields.filter((field) => field.id !== fieldId),
-    }));
-
-    if (selectedField && selectedField.id === fieldId) {
-      setSelectedField(null);
+    if (["radio", "checkbox", "select"].includes(newField.type)) {
+      processedField.options = newField.options
+        .split(",")
+        .map((opt) => opt.trim())
+        .filter((opt) => opt !== "");
+    } else {
+      delete processedField.options;
     }
+
+    setFields([...fields, processedField]);
+
+    setNewField({
+      label: "",
+      type: "text",
+      required: false,
+      options: "",
+    });
   };
 
-  const saveForm = () => {
-    const savedForms = JSON.parse(localStorage.getItem("forms") || "[]");
-    let updatedForms;
+  const handleRemoveField = (id) => {
+    setFields(fields.filter((field) => field.id !== id));
+  };
 
-    if (isEditing) {
-      const updatedForm = {
-        ...form,
-        updatedAt: new Date().toISOString(),
-      };
-      updatedForms = savedForms.map((f) =>
-        f.id === updatedForm.id ? updatedForm : f
+  const handleSaveForm = () => {
+    if (!formTitle.trim() || fields.length === 0) return;
+
+    const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
+
+    if (editingFormId) {
+      const updatedForms = savedForms.map((form) =>
+        form.id === editingFormId
+          ? {
+              ...form,
+              title: formTitle,
+              description: formDescription,
+              fields,
+              updatedAt: new Date().toISOString(),
+            }
+          : form
       );
-      setForm(updatedForm);
-      setLastAction("update"); // ✅ Mark this as update
+      localStorage.setItem("forms", JSON.stringify(updatedForms));
+      alert("Form updated successfully!");
     } else {
       const newForm = {
-        ...form,
         id: uuidv4(),
+        title: formTitle,
+        description: formDescription,
+        fields,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
-      updatedForms = [...savedForms, newForm];
-      setForm(newForm);
-      setIsEditing(true); // only after new form is saved
-      setLastAction("save"); // ✅ Mark this as save
+      localStorage.setItem("forms", JSON.stringify([...savedForms, newForm]));
+      alert("Form saved successfully!");
     }
 
-    localStorage.setItem("forms", JSON.stringify(updatedForms));
-    localStorage.removeItem("formToEdit");
-    setShowSuccess(true);
-  };
-
-  const handleTitleChange = (e) => {
-    setForm((prev) => ({ ...prev, title: e.target.value }));
-  };
-
-  const handleDescriptionChange = (e) => {
-    setForm((prev) => ({ ...prev, description: e.target.value }));
+    setActiveTab("savedForms");
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <Box sx={{ px: 4, py: 2 }}>
-        <Typography variant="h4" gutterBottom>
-          {isEditing ? "Edit Form" : "New Form"}
-        </Typography>
+    <Box sx={{ px: 3, py: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        {editingFormId ? "Edit Form" : "Create a New Form"}
+      </Typography>
 
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            label="Form Title"
-            value={form.title}
-            onChange={handleTitleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            variant="outlined"
-            label="Form Description"
-            value={form.description}
-            onChange={handleDescriptionChange}
-          />
-        </Box>
+      <TextField
+        label="Form Title"
+        variant="outlined"
+        fullWidth
+        sx={{ mb: 2 }}
+        value={formTitle}
+        onChange={(e) => setFormTitle(e.target.value)}
+      />
 
-        <Box sx={{ display: "flex", height: "calc(100vh - 300px)" }}>
-          <FormFieldsList addField={addField} />
-          <FormCanvas
-            fields={form.fields}
-            setFields={updateFields}
-            setSelectedField={setSelectedField}
-            deleteField={deleteField}
-          />
-          <FieldEditor
-            selectedField={selectedField}
-            updateField={updateField}
-            deleteField={deleteField}
-          />
-        </Box>
+      <TextField
+        label="Form Description"
+        variant="outlined"
+        fullWidth
+        sx={{ mb: 3 }}
+        value={formDescription}
+        onChange={(e) => setFormDescription(e.target.value)}
+      />
 
-        <Box
-          sx={{
-            display: "inline-flex",
-            flexDirection: "column",
-            gap: 2,
-            mt: 3,
-          }}
+      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6">Add New Field</Typography>
+
+        <TextField
+          label="Label"
+          variant="outlined"
+          fullWidth
+          sx={{ mt: 2 }}
+          value={newField.label}
+          onChange={(e) => setNewField({ ...newField, label: e.target.value })}
+        />
+
+        <TextField
+          label="Field Type"
+          variant="outlined"
+          select
+          fullWidth
+          sx={{ mt: 2 }}
+          value={newField.type}
+          onChange={(e) => setNewField({ ...newField, type: e.target.value })}
         >
-          <Button variant="contained" onClick={saveForm}>
-            {isEditing ? "Update Form" : "Save Form"}
-          </Button>
-          {isEditing && (
-            <Button
-              variant="outlined"
-              onClick={onCancelEdit}
-              sx={{ width: "100%" }}
-            >
-              Cancel
-            </Button>
-          )}
-        </Box>
+          <MenuItem value="text">Text</MenuItem>
+          <MenuItem value="date">Date</MenuItem>
+          <MenuItem value="radio">Radio</MenuItem>
+          <MenuItem value="checkbox">Checkbox</MenuItem>
+          <MenuItem value="select">Dropdown</MenuItem>
+        </TextField>
 
-        <Snackbar
-          open={showSuccess}
-          autoHideDuration={3000}
-          onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={() => setShowSuccess(false)}
-            severity="success"
-            sx={{
-              width: "450px",
-              fontSize: "1.8rem",
-              padding: "16px 24px",
-              display: "flex",
-              alignItems: "center",
-            }}
-            iconMapping={{
-              success: <span style={{ fontSize: 40 }}>✅</span>,
-            }}
+        {["radio", "checkbox", "select"].includes(newField.type) && (
+          <TextField
+            label="Options (comma-separated)"
+            variant="outlined"
+            fullWidth
+            sx={{ mt: 2 }}
+            value={newField.options}
+            onChange={(e) =>
+              setNewField({ ...newField, options: e.target.value })
+            }
+          />
+        )}
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={newField.required}
+              onChange={(e) =>
+                setNewField({ ...newField, required: e.target.checked })
+              }
+            />
+          }
+          label="Required"
+          sx={{ mt: 2 }}
+        />
+
+        <Button variant="contained" sx={{ mt: 2 }} onClick={handleAddField}>
+          Add Field
+        </Button>
+      </Paper>
+
+      <Typography variant="h6" gutterBottom>
+        Fields Added
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+
+      {fields.length === 0 ? (
+        <Typography>No fields added yet.</Typography>
+      ) : (
+        fields.map((field, idx) => (
+          <Paper
+            key={field.id}
+            elevation={2}
+            sx={{ mb: 2, p: 2, border: "1px solid #ccc" }}
           >
-            {lastAction === "update"
-              ? "Form updated successfully!"
-              : "Form saved successfully!"}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </DndProvider>
+            <Typography>
+              <strong>
+                {idx + 1}. {field.label}
+              </strong>{" "}
+              ({field.type}){field.required && " *"}
+            </Typography>
+            {field.options && Array.isArray(field.options) && (
+              <Typography variant="body2" color="text.secondary">
+                Options: {field.options.join(", ")}
+              </Typography>
+            )}
+            <Button
+              size="small"
+              color="error"
+              sx={{ mt: 1 }}
+              onClick={() => handleRemoveField(field.id)}
+            >
+              Remove
+            </Button>
+          </Paper>
+        ))
+      )}
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleSaveForm}
+        sx={{ mt: 4 }}
+      >
+        {editingFormId ? "Update Form" : "Save Form"}
+      </Button>
+    </Box>
   );
 };
 

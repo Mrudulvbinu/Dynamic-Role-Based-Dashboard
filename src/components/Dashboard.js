@@ -648,6 +648,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                 key={localStorage.getItem("formToEdit") || "create"}
                 editMode={!!localStorage.getItem("formToEdit")}
                 formId={localStorage.getItem("formToEdit")}
+                setActiveTab={setActiveTab}
                 onCancelEdit={() => {
                   localStorage.removeItem("formToEdit");
                   setActiveTab("forms");
@@ -659,7 +660,9 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
               <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
                 Saved Forms
               </Typography>
-              <SavedForms setActiveTab={setActiveTab} />
+              {activeTab === "forms" && (
+                <SavedForms setActiveTab={setActiveTab} />
+              )}
             </Box>
           ) : (
             <Box sx={{ p: 3 }}>
