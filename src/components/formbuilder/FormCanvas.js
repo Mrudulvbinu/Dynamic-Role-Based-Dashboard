@@ -1,50 +1,92 @@
 import React from "react";
-import { useDrop } from "react-dnd";
-import { Box, Typography } from "@mui/material";
-import FieldComponent from "./FieldComponent";
+import GridLayout from "react-grid-layout";
+import { Box, IconButton } from "@mui/material";
+import TextField from "./fields/TextField";
+import DropdownField from "./fields/DropdownField";
+import CheckboxField from "./fields/CheckboxField";
+import DateField from "./fields/DateField";
+import RadioButton from "./fields/RadioButton";
+import Label from "./fields/Label";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-const FormCanvas = ({ fields = [], setFields, setSelectedField }) => {
-  const [, drop] = useDrop(() => ({
-    accept: "field",
-    drop: () => ({ name: "FormCanvas" }),
-  }));
+const fieldComponentMap = {
+  textfield: TextField,
+  dropdown: DropdownField,
+  checkbox: CheckboxField,
+  date: DateField,
+  radio: RadioButton,
+  label: Label,
+};
 
-  const moveField = (dragIndex, hoverIndex) => {
-    const draggedField = fields[dragIndex];
-    const newFields = [...fields];
-    newFields.splice(dragIndex, 1);
-    newFields.splice(hoverIndex, 0, draggedField);
-    setFields(newFields);
+const FormCanvas = ({ fields, setFields, setSelectedField, deleteField }) => {
+  const handleLayoutChange = (layout) => {
+    const updatedFields = fields.map((field) => {
+      const layoutItem = layout.find((item) => item.i === field.id);
+      return {
+        ...field,
+        x: layoutItem?.x ?? 0,
+        y: layoutItem?.y ?? 0,
+        w: layoutItem?.w ?? 4,
+        h: layoutItem?.h ?? 1,
+      };
+    });
+    setFields(updatedFields);
   };
 
   return (
-    <Box
-      ref={drop}
-      sx={{
-        flex: 1,
-        p: 2,
-        minHeight: "500px",
-        border: "1px dashed #ccc",
-        borderRadius: 1,
-      }}
-    >
-      {fields && fields.length > 0 ? (
-        fields.map((field, index) =>
-          field && field.id ? (
-            <FieldComponent
-              key={field.id}
-              field={field}
-              index={index}
-              moveField={moveField}
-              onClick={() => setSelectedField(field)}
-            />
-          ) : null
-        )
-      ) : (
-        <Typography variant="body1" color="text.secondary">
-          Drag and drop fields here to build your form
-        </Typography>
-      )}
+    <Box sx={{ flex: 1, p: 2, border: "1px solid #ccc", minHeight: "400px" }}>
+      <GridLayout
+        className="layout"
+        layout={fields
+          .filter((f) => f && f.id)
+          .map((f) => ({
+            i: f.id,
+            x: f.x ?? 0,
+            y: typeof f.y === "number" ? f.y : 0,
+            w: f.w ?? 4,
+            h: f.h ?? 1,
+          }))}
+        cols={12}
+        rowHeight={60}
+        width={800}
+        isDraggable
+        isResizable
+        onLayoutChange={handleLayoutChange}
+      >
+        {fields
+          .filter((field) => field && field.id)
+          .map((field) => {
+            const Component = fieldComponentMap[field.type];
+            if (!Component) return null;
+            return (
+              <div
+                key={field.id}
+                onClick={() => setSelectedField(field)}
+                style={{ position: "relative" }}
+              >
+                <Component field={field} />
+                <IconButton
+                  aria-label="delete"
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent select on delete
+                    deleteField(field.id);
+                  }}
+                  sx={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    backgroundColor: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </div>
+            );
+          })}
+      </GridLayout>
     </Box>
   );
 };

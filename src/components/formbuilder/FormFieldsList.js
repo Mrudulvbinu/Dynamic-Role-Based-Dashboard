@@ -1,52 +1,41 @@
 import React from "react";
-import { Button, Box, Typography } from "@mui/material";
-import { useDrag } from "react-dnd";
+import { Box, Typography, Button, Stack } from "@mui/material";
 
-const fieldTypes = [
-  { type: "text", label: "Text Field" },
+const formFields = [
+  { type: "textfield", label: "Text Field" },
   { type: "dropdown", label: "Dropdown" },
-  { type: "date", label: "Date Picker" },
   { type: "checkbox", label: "Checkbox" },
+  { type: "date", label: "Date" },
+  { type: "radio", label: "Radio Buttons" },
+  { type: "label", label: "Label" },
 ];
-
-const DraggableField = ({ type, label, addField }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "field",
-    item: { type },
-    end: (item, monitor) => {
-      if (monitor.didDrop()) {
-        addField(item.type);
-      }
-    },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
-  return (
-    <Button
-      ref={drag}
-      variant="outlined"
-      fullWidth
-      sx={{ mb: 1, opacity: isDragging ? 0.5 : 1 }}
-    >
-      {label}
-    </Button>
-  );
-};
 
 const FormFieldsList = ({ addField }) => {
   return (
-    <Box sx={{ width: 200, p: 2, borderRight: "1px solid #eee" }}>
-      <Typography variant="h6">Fields</Typography>
-      {fieldTypes.map((field) => (
-        <DraggableField
-          key={field.type}
-          type={field.type}
-          label={field.label}
-          addField={addField}
-        />
-      ))}
+    <Box
+      sx={{
+        width: 240,
+        mr: 3,
+        border: "1px solid #ccc",
+        borderRadius: 2,
+        p: 2,
+        height: "fit-content",
+      }}
+    >
+      <Typography variant="h6" gutterBottom>
+        Form Fields
+      </Typography>
+      <Stack spacing={1}>
+        {formFields.map((field) => (
+          <Button
+            key={field.type}
+            variant="outlined"
+            onClick={() => addField(field.type)}
+          >
+            {field.label}
+          </Button>
+        ))}
+      </Stack>
     </Box>
   );
 };

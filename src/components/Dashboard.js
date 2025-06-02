@@ -54,72 +54,88 @@ const ROW_HEIGHT = 120;
 const CONTAINER_PADDING = [20, 30];
 const GRID_MARGIN = [20, 20];
 
-const Dashboard = ({ role, onLogout, user }) => {
+const Dashboard = ({ role = "user", onLogout, user }) => {
   const isMobile = useMediaQuery("(max-width:600px)");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const allWidgets = useRolePermissions(role);
+  const allWidgets = useRolePermissions(role) || [];
   const [selectedWidgets, setSelectedWidgets] = useState([]);
   const [layouts, setLayouts] = useState({ lg: [] });
   const [widgetMenuAnchor, setWidgetMenuAnchor] = useState(null);
   const initialized = useRef(false);
 
   useEffect(() => {
-    console.log("Initializing dashboard layout...", initialized.current);
-    if (!allWidgets || initialized.current) return;
+    if (!allWidgets?.length || initialized.current) return;
 
-    const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
-    const savedLayouts = localStorage.getItem(`dashboardLayout-${role}`);
+    const initializeDashboard = () => {
+      try {
+        const savedWidgets = localStorage.getItem(`selectedWidgets-${role}`);
+        const savedLayouts = localStorage.getItem(`dashboardLayout-${role}`);
 
-    const initialWidgets = savedWidgets
-      ? JSON.parse(savedWidgets)
-      : allWidgets.map((w) => w.id);
+        const initialWidgets = savedWidgets
+          ? JSON.parse(savedWidgets) || []
+          : allWidgets.map((w) => w?.id).filter(Boolean);
 
-    const calculateInitialLayout = (widgets) => {
-      return widgets.map((widget, index) => ({
-        i: widget.id.toString(),
-        x: (index % 3) * WIDGET_WIDTH,
-        y: Math.floor(index / 3) * WIDGET_HEIGHT,
-        w: WIDGET_WIDTH,
-        h: WIDGET_HEIGHT,
-        minW: WIDGET_WIDTH,
-        maxW: WIDGET_WIDTH,
-        minH: WIDGET_HEIGHT,
-        maxH: WIDGET_HEIGHT,
-        isResizable: false,
-      }));
-    };
-
-    const initialLayouts = savedLayouts
-      ? JSON.parse(savedLayouts)
-      : {
-          lg: calculateInitialLayout(
-            allWidgets.filter((w) => initialWidgets.includes(w.id))
-          ),
+        const calculateInitialLayout = (widgets = []) => {
+          return widgets.map((widget, index) => ({
+            i: widget?.id?.toString() || `widget-${index}`,
+            x: (index % 3) * WIDGET_WIDTH,
+            y: Math.floor(index / 3) * WIDGET_HEIGHT,
+            w: WIDGET_WIDTH,
+            h: WIDGET_HEIGHT,
+            minW: WIDGET_WIDTH,
+            maxW: WIDGET_WIDTH,
+            minH: WIDGET_HEIGHT,
+            maxH: WIDGET_HEIGHT,
+            isResizable: false,
+          }));
         };
 
-    setSelectedWidgets(initialWidgets);
-    setLayouts(initialLayouts);
-    initialized.current = true;
+        const initialLayouts = savedLayouts
+          ? JSON.parse(savedLayouts) || { lg: [] }
+          : {
+              lg: calculateInitialLayout(
+                allWidgets.filter((w) => initialWidgets.includes(w?.id))
+              ),
+            };
+
+        setSelectedWidgets(initialWidgets);
+        setLayouts(initialLayouts);
+        initialized.current = true;
+      } catch (error) {
+        console.error("Dashboard initialization error:", error);
+        setSelectedWidgets(allWidgets.map((w) => w?.id).filter(Boolean));
+        setLayouts({ lg: [] });
+      }
+    };
+
+    initializeDashboard();
   }, [role, allWidgets]);
 
   const handleToggleWidget = (widgetId) => {
+    if (!widgetId) return;
+
     const newSelection = selectedWidgets.includes(widgetId)
       ? selectedWidgets.filter((id) => id !== widgetId)
       : [...selectedWidgets, widgetId];
 
     setSelectedWidgets(newSelection);
 
-    const visibleWidgets = allWidgets.filter((w) =>
-      newSelection.includes(w.id)
+    const visibleWidgets = allWidgets.filter(
+      (w) => w?.id && newSelection.includes(w.id)
     );
     const newLayout = visibleWidgets.map((widget, index) => {
-      const existingPos = layouts.lg.find((l) => l.i === widget.id.toString());
+      const existingPos = layouts?.lg?.find(
+        (l) => l.i === widget?.id?.toString()
+      );
       if (existingPos) return existingPos;
 
-      const maxY = layouts.lg.reduce((max, item) => Math.max(max, item.y), -1);
+      const maxY = layouts?.lg?.reduce(
+        (max, item) => Math.max(max, item?.y || 0),
+        -1
+      );
       return {
-        i: widget.id.toString(),
+        i: widget?.id?.toString() || `widget-${index}`,
         x: (index % 3) * WIDGET_WIDTH,
         y: maxY + WIDGET_HEIGHT,
         w: WIDGET_WIDTH,
@@ -129,20 +145,23 @@ const Dashboard = ({ role, onLogout, user }) => {
     });
 
     setLayouts({ lg: newLayout });
-    localStorage.setItem(
-      `selectedWidgets-${role}`,
-      JSON.stringify(newSelection)
-    );
-    localStorage.setItem(
-      `dashboardLayout-${role}`,
-      JSON.stringify({ lg: newLayout })
-    );
+    try {
+      localStorage.setItem(
+        `selectedWidgets-${role}`,
+        JSON.stringify(newSelection)
+      );
+      localStorage.setItem(
+        `dashboardLayout-${role}`,
+        JSON.stringify({ lg: newLayout })
+      );
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
   };
 
   const handleLayoutChange = (currentLayout, allLayouts) => {
-    const lgLayout = allLayouts.lg.map((item) => {
-      const snappedX = Math.round(item.x / WIDGET_WIDTH) * WIDGET_WIDTH;
-
+    const lgLayout = (allLayouts?.lg || []).map((item) => {
+      const snappedX = Math.round((item?.x || 0) / WIDGET_WIDTH) * WIDGET_WIDTH;
       const boundedX = Math.min(
         Math.max(snappedX, 0),
         GRID_COLUMNS - WIDGET_WIDTH
@@ -151,23 +170,32 @@ const Dashboard = ({ role, onLogout, user }) => {
       return {
         ...item,
         x: boundedX,
-        y: item.y,
+        y: item?.y || 0,
         w: WIDGET_WIDTH,
         h: WIDGET_HEIGHT,
       };
     });
 
     setLayouts({ lg: lgLayout });
-    localStorage.setItem(
-      `dashboardLayout-${role}`,
-      JSON.stringify({ lg: lgLayout })
-    );
+    try {
+      localStorage.setItem(
+        `dashboardLayout-${role}`,
+        JSON.stringify({ lg: lgLayout })
+      );
+    } catch (error) {
+      console.error("Error saving layout:", error);
+    }
   };
 
   const handleDragStop = (layout, oldItem, newItem) => {
+    if (!newItem?.i) return;
+
     const targetWidget = layout.find(
       (item) =>
-        item.i !== newItem.i && item.x === newItem.x && item.y === newItem.y
+        item?.i &&
+        item.i !== newItem.i &&
+        item.x === newItem.x &&
+        item.y === newItem.y
     );
 
     if (targetWidget) {
@@ -182,10 +210,14 @@ const Dashboard = ({ role, onLogout, user }) => {
       });
 
       setLayouts({ lg: updatedLayout });
-      localStorage.setItem(
-        `dashboardLayout-${role}`,
-        JSON.stringify({ lg: updatedLayout })
-      );
+      try {
+        localStorage.setItem(
+          `dashboardLayout-${role}`,
+          JSON.stringify({ lg: updatedLayout })
+        );
+      } catch (error) {
+        console.error("Error saving layout:", error);
+      }
     }
   };
 
@@ -194,18 +226,53 @@ const Dashboard = ({ role, onLogout, user }) => {
   };
 
   const handleWidgetMenuOpen = (event) => {
-    setWidgetMenuAnchor(event.currentTarget);
+    setWidgetMenuAnchor(event?.currentTarget);
   };
 
   const handleWidgetMenuClose = () => {
     setWidgetMenuAnchor(null);
   };
 
-  const visibleWidgets = allWidgets.filter((w) =>
-    selectedWidgets.includes(w.id)
+  const visibleWidgets = allWidgets.filter(
+    (w) => w?.id && selectedWidgets.includes(w.id)
   );
 
   const drawerWidth = 230;
+
+  const renderWidgetContent = (widget) => {
+    if (!widget) return null;
+
+    switch (widget.type) {
+      case "status":
+        return <StatusCard {...(widget.config || {})} />;
+      case "chart":
+        return <ChartWidget />;
+      case "activity":
+        return <ActivityTable />;
+      case "labPie":
+        return <LabResultsPie />;
+      case "labBar":
+        return <LabTrendsBar />;
+      case "appointmentList":
+        return (
+          <UpcomingAppointments
+            appointments={widget.config?.appointments || []}
+          />
+        );
+      case "prescriptionList":
+        return (
+          <Prescriptions prescriptions={widget.config?.prescriptions || []} />
+        );
+      case "patientStatus":
+        return <PatientStatsCard {...(widget.config || {})} />;
+      default:
+        return (
+          <Card sx={{ p: 4, height: "100%" }}>
+            <Typography>{widget.name || "Unnamed Widget"}</Typography>
+          </Card>
+        );
+    }
+  };
 
   const drawer = (
     <Box
@@ -222,172 +289,76 @@ const Dashboard = ({ role, onLogout, user }) => {
       }}
     >
       <List sx={{ pt: 0, flexGrow: 1 }}>
-        {/* Dashboard Item */}
-        <ListItem
-          button
-          selected={activeTab === "dashboard"}
-          onClick={() => setActiveTab("dashboard")}
-          sx={{
-            mt: "64px",
-            backgroundColor:
-              activeTab === "dashboard" ? "#0059b3" : "transparent",
-            color: activeTab === "dashboard" ? "white" : "black",
-            borderRadius: "10px",
-            "&:hover": {
-              backgroundColor: "white",
-              color: "black",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              transform: "scale(1.01)",
-              "& .MuiListItemIcon-root": {
-                color: "black",
-              },
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: activeTab === "dashboard" ? "white" : "black",
-              minWidth: "40px",
-              transition: "color 0.3s ease",
-            }}
-          >
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary="Dashboard"
-            primaryTypographyProps={{
-              fontWeight: "bold",
-              fontFamily: '"Poppins", sans-serif',
-            }}
-          />
-        </ListItem>
-
-        {/* Data Table Button (role-specific) */}
-        <ListItem
-          button
-          selected={activeTab === "dataTable"}
-          onClick={() => setActiveTab("dataTable")}
-          sx={{
-            display: role === "doctor" || role === "patient" ? "flex" : "none",
-            backgroundColor:
-              activeTab === "dataTable" ? "#0059b3" : "transparent",
-            color: activeTab === "dataTable" ? "white" : "black",
-            borderRadius: "10px",
-            "&:hover": {
-              backgroundColor: "white",
-              color: "black",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              transform: "scale(1.01)",
-              "& .MuiListItemIcon-root": { color: "black" },
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: activeTab === "dataTable" ? "white" : "black",
-              minWidth: "40px",
-              transition: "color 0.3s ease",
-            }}
-          >
-            <TableChartIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary="Data Table"
-            primaryTypographyProps={{
-              fontWeight: "bold",
-              fontFamily: '"Poppins", sans-serif',
-            }}
-          />
-        </ListItem>
-
-        {/* Form+ Button */}
-        <ListItem
-          button
-          selected={activeTab === "formPlus"}
-          onClick={() => setActiveTab("formPlus")}
-          sx={{
-            display: role === "admin" ? "flex" : "none",
-            backgroundColor:
-              activeTab === "formPlus" ? "#0059b3" : "transparent",
-            color: activeTab === "formPlus" ? "white" : "black",
-            borderRadius: "10px",
-            "&:hover": {
-              backgroundColor: "white",
-              color: "black",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              transform: "scale(1.01)",
-              "& .MuiListItemIcon-root": {
-                color: "black",
-              },
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: activeTab === "formPlus" ? "white" : "black",
-              minWidth: "40px",
-              transition: "color 0.3s ease",
-            }}
-          >
-            <NoteAddIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary="Form+"
-            primaryTypographyProps={{
-              fontWeight: "bold",
-              fontFamily: '"Poppins", sans-serif',
-            }}
-          />
-        </ListItem>
-
-        {/* Forms Button */}
-        <ListItem
-          button
-          selected={activeTab === "forms"}
-          onClick={() => setActiveTab("forms")}
-          sx={{
-            display: role === "admin" ? "flex" : "none",
-            backgroundColor: activeTab === "forms" ? "#0059b3" : "transparent",
-            color: activeTab === "forms" ? "white" : "black",
-            borderRadius: "10px",
-            "&:hover": {
-              backgroundColor: "white",
-              color: "black",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              transform: "scale(1.01)",
-              "& .MuiListItemIcon-root": {
-                color: "black",
-              },
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: activeTab === "forms" ? "white" : "black",
-              minWidth: "40px",
-              transition: "color 0.3s ease",
-            }}
-          >
-            <ListAltIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary="Forms"
-            primaryTypographyProps={{
-              fontWeight: "bold",
-              fontFamily: '"Poppins", sans-serif',
-            }}
-          />
-        </ListItem>
+        {[
+          { tab: "dashboard", icon: <DashboardIcon />, label: "Dashboard" },
+          {
+            tab: "dataTable",
+            icon: <TableChartIcon />,
+            label: "Data Table",
+            show: ["doctor", "patient"].includes(role),
+          },
+          {
+            tab: "formPlus",
+            icon: <NoteAddIcon />,
+            label: "Form+",
+            show: role === "admin",
+          },
+          {
+            tab: "forms",
+            icon: <ListAltIcon />,
+            label: "Forms",
+            show: role === "admin",
+          },
+        ].map(
+          ({ tab, icon, label, show = true }) =>
+            show && (
+              <ListItem
+                key={tab}
+                button={true}
+                selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                sx={{
+                  mt: tab === "dashboard" ? "64px" : 0,
+                  backgroundColor:
+                    activeTab === tab ? "#0059b3" : "transparent",
+                  color: activeTab === tab ? "white" : "black",
+                  borderRadius: "10px",
+                  "&:hover": {
+                    backgroundColor: "white",
+                    color: "black",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
+                    transform: "scale(1.01)",
+                    "& .MuiListItemIcon-root": {
+                      color: "black",
+                    },
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: activeTab === tab ? "white" : "black",
+                    minWidth: "40px",
+                    transition: "color 0.3s ease",
+                  }}
+                >
+                  {icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={label}
+                  primaryTypographyProps={{
+                    fontWeight: "bold",
+                    fontFamily: '"Poppins", sans-serif',
+                  }}
+                />
+              </ListItem>
+            )
+        )}
       </List>
 
-      {/* Settings Button (at bottom) */}
       <List sx={{ pb: 2 }}>
         <ListItem
-          button
+          button={true}
           selected={activeTab === "settings"}
           onClick={() => setActiveTab("settings")}
           sx={{
@@ -457,7 +428,8 @@ const Dashboard = ({ role, onLogout, user }) => {
                 color: "#ffffff",
               }}
             >
-              {role.charAt(0).toUpperCase() + role.slice(1)} Dashboard
+              {(role?.charAt(0)?.toUpperCase() + role?.slice(1) || "User") +
+                " Dashboard"}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -501,16 +473,19 @@ const Dashboard = ({ role, onLogout, user }) => {
                 </Typography>
               </MenuItem>
               {allWidgets.map((widget) => (
-                <MenuItem key={widget.id} onClick={(e) => e.stopPropagation()}>
+                <MenuItem
+                  key={widget?.id || Math.random().toString()}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={selectedWidgets.includes(widget.id)}
-                        onChange={() => handleToggleWidget(widget.id)}
+                        checked={selectedWidgets.includes(widget?.id)}
+                        onChange={() => handleToggleWidget(widget?.id)}
                         color="primary"
                       />
                     }
-                    label={widget.name}
+                    label={widget?.name || "Unnamed Widget"}
                     sx={{ width: "100%" }}
                   />
                 </MenuItem>
@@ -640,66 +615,23 @@ const Dashboard = ({ role, onLogout, user }) => {
                   backgroundColor: "transparent",
                 }}
               >
-                {visibleWidgets.map((widget) => {
+                {visibleWidgets.map((widget, index) => {
                   const defaultLayout = {
-                    x: (visibleWidgets.indexOf(widget) % 3) * WIDGET_WIDTH,
-                    y:
-                      Math.floor(visibleWidgets.indexOf(widget) / 3) *
-                      WIDGET_HEIGHT,
+                    x: (index % 3) * WIDGET_WIDTH,
+                    y: Math.floor(index / 3) * WIDGET_HEIGHT,
                     w: WIDGET_WIDTH,
                     h: WIDGET_HEIGHT,
                     minH: WIDGET_HEIGHT,
                     maxH: WIDGET_HEIGHT,
                   };
 
-                  const existingLayout = layouts.lg.find(
-                    (l) => l.i === widget.id.toString()
+                  const existingLayout = layouts?.lg?.find(
+                    (l) => l.i === widget?.id?.toString()
                   );
 
-                  let widgetContent;
-                  switch (widget.type) {
-                    case "status":
-                      widgetContent = <StatusCard {...widget.config} />;
-                      break;
-                    case "chart":
-                      widgetContent = <ChartWidget />;
-                      break;
-                    case "activity":
-                      widgetContent = <ActivityTable />;
-                      break;
-                    case "labPie":
-                      widgetContent = <LabResultsPie />;
-                      break;
-                    case "labBar":
-                      widgetContent = <LabTrendsBar />;
-                      break;
-                    case "appointmentList":
-                      widgetContent = (
-                        <UpcomingAppointments
-                          appointments={widget.config?.appointments}
-                        />
-                      );
-                      break;
-                    case "prescriptionList":
-                      widgetContent = (
-                        <Prescriptions
-                          prescriptions={widget.config?.prescriptions}
-                        />
-                      );
-                      break;
-                    case "patientStatus":
-                      widgetContent = <PatientStatsCard {...widget.config} />;
-                      break;
-                    default:
-                      widgetContent = (
-                        <Card sx={{ p: 4, height: "100%" }}>
-                          <Typography>{widget.name}</Typography>
-                        </Card>
-                      );
-                  }
                   return (
                     <div
-                      key={widget.id}
+                      key={widget?.id || `widget-${index}`}
                       data-grid={existingLayout || defaultLayout}
                       style={{
                         overflow: "hidden",
@@ -708,7 +640,7 @@ const Dashboard = ({ role, onLogout, user }) => {
                         transition: "box-shadow 0.3s ease",
                       }}
                     >
-                      {widgetContent}
+                      {renderWidgetContent(widget)}
                     </div>
                   );
                 })}
@@ -731,6 +663,7 @@ const Dashboard = ({ role, onLogout, user }) => {
                   : "Form Builder"}
               </Typography>
               <FormBuilder
+                key={localStorage.getItem("formToEdit") || "create"}
                 editMode={!!localStorage.getItem("formToEdit")}
                 formId={localStorage.getItem("formToEdit")}
                 onCancelEdit={() => {
@@ -754,13 +687,13 @@ const Dashboard = ({ role, onLogout, user }) => {
               <DynamicTable
                 columns={
                   role === "doctor"
-                    ? doctorTableData.columns
-                    : patientTableData.columns
+                    ? doctorTableData?.columns || []
+                    : patientTableData?.columns || []
                 }
                 data={
                   role === "doctor"
-                    ? doctorTableData.data
-                    : patientTableData.data
+                    ? doctorTableData?.data || []
+                    : patientTableData?.data || []
                 }
               />
             </Box>

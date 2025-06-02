@@ -14,7 +14,7 @@ import FormFieldsList from "./FormFieldsList";
 import FormCanvas from "./FormCanvas";
 import FieldEditor from "./FieldEditor";
 
-const FormBuilder = ({ onCancelEdit }) => {
+const FormBuilder = ({ onCancelEdit = () => {} }) => {
   const [form, setForm] = useState({
     id: "",
     title: "Untitled Form",
@@ -23,7 +23,7 @@ const FormBuilder = ({ onCancelEdit }) => {
     createdAt: "",
     updatedAt: "",
   });
-
+  const [lastAction, setLastAction] = useState("");
   const [selectedField, setSelectedField] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +48,10 @@ const FormBuilder = ({ onCancelEdit }) => {
       required: false,
       ...(type === "dropdown" && { options: ["Option 1"] }),
       ...(type === "checkbox" && { checked: false }),
+      x: 0,
+      y: 0,
+      w: 4,
+      h: 1,
     };
     setForm((prev) => ({
       ...prev,
@@ -71,6 +75,17 @@ const FormBuilder = ({ onCancelEdit }) => {
     }));
   };
 
+  const deleteField = (fieldId) => {
+    setForm((prev) => ({
+      ...prev,
+      fields: prev.fields.filter((field) => field.id !== fieldId),
+    }));
+
+    if (selectedField && selectedField.id === fieldId) {
+      setSelectedField(null);
+    }
+  };
+
   const saveForm = () => {
     const savedForms = JSON.parse(localStorage.getItem("forms") || "[]");
     let updatedForms;
@@ -83,6 +98,8 @@ const FormBuilder = ({ onCancelEdit }) => {
       updatedForms = savedForms.map((f) =>
         f.id === updatedForm.id ? updatedForm : f
       );
+      setForm(updatedForm);
+      setLastAction("update"); // ✅ Mark this as update
     } else {
       const newForm = {
         ...form,
@@ -91,12 +108,14 @@ const FormBuilder = ({ onCancelEdit }) => {
         updatedAt: new Date().toISOString(),
       };
       updatedForms = [...savedForms, newForm];
+      setForm(newForm);
+      setIsEditing(true); // only after new form is saved
+      setLastAction("save"); // ✅ Mark this as save
     }
 
     localStorage.setItem("forms", JSON.stringify(updatedForms));
     localStorage.removeItem("formToEdit");
     setShowSuccess(true);
-    setIsEditing(false);
   };
 
   const handleTitleChange = (e) => {
@@ -138,10 +157,12 @@ const FormBuilder = ({ onCancelEdit }) => {
             fields={form.fields}
             setFields={updateFields}
             setSelectedField={setSelectedField}
+            deleteField={deleteField}
           />
           <FieldEditor
             selectedField={selectedField}
             updateField={updateField}
+            deleteField={deleteField}
           />
         </Box>
 
@@ -187,7 +208,7 @@ const FormBuilder = ({ onCancelEdit }) => {
               success: <span style={{ fontSize: 40 }}>✅</span>,
             }}
           >
-            {isEditing
+            {lastAction === "update"
               ? "Form updated successfully!"
               : "Form saved successfully!"}
           </Alert>

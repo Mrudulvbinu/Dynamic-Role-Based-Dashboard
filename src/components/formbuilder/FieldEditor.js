@@ -1,55 +1,118 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   TextField,
-  Typography,
   Checkbox,
   FormControlLabel,
+  Button,
+  Typography,
+  IconButton,
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-const FieldEditor = ({ selectedField, updateField }) => {
-  if (!selectedField) {
+const FieldEditor = ({ selectedField, updateField, deleteField }) => {
+  const [localField, setLocalField] = useState(null);
+
+  useEffect(() => {
+    if (selectedField) {
+      setLocalField({ ...selectedField });
+    } else {
+      setLocalField(null);
+    }
+  }, [selectedField]);
+
+  if (!localField) {
     return (
-      <Box sx={{ width: 300, p: 2, borderLeft: "1px solid #eee" }}>
-        <Typography>Select a field to edit</Typography>
+      <Box sx={{ width: 300, p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Select a field to edit
+        </Typography>
       </Box>
     );
   }
 
   const handleChange = (e) => {
-    updateField({
-      ...selectedField,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value, type, checked } = e.target;
+    setLocalField((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleOptionsChange = (e) => {
+    const options = e.target.value.split(",").map((opt) => opt.trim());
+    setLocalField((prev) => ({
+      ...prev,
+      options,
+    }));
+  };
+
+  const saveChanges = () => {
+    updateField(localField);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this field?")) {
+      deleteField(localField.id);
+    }
   };
 
   return (
-    <Box sx={{ width: 300, p: 2, borderLeft: "1px solid #eee" }}>
-      <Typography variant="h6">Field Properties</Typography>
+    <Box
+      sx={{
+        width: 300,
+        p: 2,
+        border: "1px solid #ccc",
+        borderRadius: 2,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      <Typography variant="h6" gutterBottom>
+        Edit Field
+      </Typography>
+
       <TextField
-        name="label"
         label="Label"
-        value={selectedField.label}
+        name="label"
+        value={localField.label}
         onChange={handleChange}
-        fullWidth
-        margin="normal"
       />
+
+      {localField.type === "dropdown" && (
+        <TextField
+          label="Options (comma separated)"
+          value={localField.options?.join(", ") || ""}
+          onChange={handleOptionsChange}
+        />
+      )}
+
       <FormControlLabel
         control={
           <Checkbox
             name="required"
-            checked={selectedField.required}
-            onChange={(e) =>
-              updateField({
-                ...selectedField,
-                required: e.target.checked,
-              })
-            }
+            checked={!!localField.required}
+            onChange={handleChange}
           />
         }
         label="Required"
       />
-      {/* Add more field-specific properties here */}
+
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <Button variant="contained" onClick={saveChanges} fullWidth>
+          Save
+        </Button>
+        <IconButton
+          aria-label="delete"
+          color="error"
+          onClick={handleDelete}
+          size="large"
+          sx={{ alignSelf: "center" }}
+        >
+          <DeleteIcon />
+        </IconButton>
+      </Box>
     </Box>
   );
 };
