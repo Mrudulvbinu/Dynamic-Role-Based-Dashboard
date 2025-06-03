@@ -2,19 +2,17 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Stack,
 } from "@mui/material";
 
 import FormPreview from "./FormPreview";
 import PrintableForm from "./PrintableForm";
+import DynamicTable from "../DynamicTable";
 
 const SavedForms = ({ setActiveTab }) => {
   const [forms, setForms] = useState([]);
@@ -77,57 +75,58 @@ const SavedForms = ({ setActiveTab }) => {
     printWindow.print();
   };
 
-  const FormCard = ({ form }) => (
-    <Card>
-      <CardContent>
-        <Typography variant="h5">{form.title}</Typography>
-        <Typography variant="body1" color="text.secondary">
-          {form.fields.length} fields
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {form.fields.length} fields
-        </Typography>
+  // Table columns definition
+  const columns = [
+    { key: "title", label: "Form Title" },
+    { key: "fieldsCount", label: "No. of Fields" },
+    { key: "createdAt", label: "Created At" },
+    { key: "actions", label: "Actions" },
+  ];
 
-        {form.createdAt && (
-          <Typography variant="caption" color="text.secondary">
-            Created: {new Date(form.createdAt).toLocaleString()}
-          </Typography>
-        )}
-      </CardContent>
-      <CardActions>
+  // Prepare data for the DynamicTable
+  const tableData = forms.map((form) => ({
+    title: form.title,
+    fieldsCount: form.fields.length,
+    createdAt: form.createdAt ? new Date(form.createdAt).toLocaleString() : "—",
+    actions: (
+      <Stack direction="row" spacing={1}>
         <Button
-          size="medium"
+          variant="outlined"
           color="success"
+          size="small"
           onClick={() => handlePreview(form)}
         >
           Preview
         </Button>
-        <Button size="medium" onClick={() => handleEdit(form.id)}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleEdit(form.id)}
+        >
           Edit
         </Button>
         <Button
-          size="medium"
+          variant="outlined"
           color="error"
+          size="small"
           onClick={() => handleDeleteClick(form.id)}
         >
           Delete
         </Button>
-      </CardActions>
-    </Card>
-  );
+      </Stack>
+    ),
+  }));
 
   return (
     <Box sx={{ px: 3, py: 2 }}>
+      <Typography variant="h5" sx={{ mb: 2 }}>
+        Saved Forms
+      </Typography>
+
       {forms.length === 0 ? (
         <Typography>No forms saved yet</Typography>
       ) : (
-        <Grid container spacing={3}>
-          {forms.map((form) => (
-            <Grid item xs={12} sm={6} md={4} key={form.id}>
-              <FormCard form={form} />
-            </Grid>
-          ))}
-        </Grid>
+        <DynamicTable data={tableData} columns={columns} />
       )}
 
       {/* Delete Confirmation Dialog */}
@@ -156,7 +155,7 @@ const SavedForms = ({ setActiveTab }) => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Live Form Preview</DialogTitle>
+        <DialogTitle>Form Preview</DialogTitle>
         <DialogContent>
           <FormPreview form={selectedForm} />
         </DialogContent>

@@ -641,7 +641,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
             <Box sx={{ p: 3 }}>
               <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
                 {localStorage.getItem("formToEdit")
-                  ? "Edit Form"
+                  ? "Form Builder"
                   : "Form Builder"}
               </Typography>
               <FormBuilder

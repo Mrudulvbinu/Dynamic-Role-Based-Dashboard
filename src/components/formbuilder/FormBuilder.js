@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   TextField,
   Button,
@@ -12,6 +12,10 @@ import {
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 import tickGif from "../../assets/tick.gif";
+
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 
 const FormBuilder = ({ setActiveTab }) => {
   const [formTitle, setFormTitle] = useState("");
@@ -119,6 +123,53 @@ const FormBuilder = ({ setActiveTab }) => {
     }, 3000);
   };
 
+  // Dynamic Yup schema from fields
+  const validationSchema = useMemo(() => {
+    const shape = {};
+    fields.forEach((field) => {
+      if (field.type === "heading") return;
+      if (field.required) {
+        switch (field.type) {
+          case "text":
+          case "select":
+          case "radio":
+            shape[field.id] = yup.string().required("This field is required");
+            break;
+          case "date":
+            shape[field.id] = yup
+              .date()
+              .typeError("Invalid date")
+              .required("This field is required");
+            break;
+          case "checkbox":
+            shape[field.id] = yup
+              .array()
+              .min(1, "Select at least one option")
+              .required("This field is required");
+            break;
+          default:
+            shape[field.id] = yup.string().required("This field is required");
+        }
+      }
+    });
+    return yup.object().shape(shape);
+  }, [fields]);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(validationSchema),
+    mode: "onTouched",
+  });
+
+  const onSubmit = (data) => {
+    alert("Form submitted! Data:\n" + JSON.stringify(data, null, 2));
+    reset();
+  };
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <Typography variant="h4" gutterBottom>
@@ -143,7 +194,6 @@ const FormBuilder = ({ setActiveTab }) => {
         onChange={(e) => setFormDescription(e.target.value)}
       />
 
-      {/* Add New Field Section  */}
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6">Add New Field</Typography>
 
@@ -206,8 +256,7 @@ const FormBuilder = ({ setActiveTab }) => {
         </Button>
       </Paper>
 
-      {/* Added Fields Section  */}
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h5" gutterBottom>
         Fields Added
       </Typography>
       <Divider sx={{ mb: 2 }} />
@@ -255,89 +304,6 @@ const FormBuilder = ({ setActiveTab }) => {
         ))
       )}
 
-      {/* Live Form Preview Section  */}
-      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-        Live Form Preview
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
-
-      {fields.length === 0 ? (
-        <Typography variant="body2">
-          No preview available. Please add fields.
-        </Typography>
-      ) : (
-        <Box
-          component="form"
-          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-        >
-          {fields.map((field) => (
-            <Box key={field.id}>
-              {field.type === "heading" ? (
-                <Typography variant="h6" color="primary">
-                  {field.label}
-                </Typography>
-              ) : field.type === "text" ? (
-                <TextField
-                  label={field.label}
-                  required={field.required}
-                  fullWidth
-                  variant="outlined"
-                />
-              ) : field.type === "date" ? (
-                <TextField
-                  type="date"
-                  label={field.label}
-                  required={field.required}
-                  fullWidth
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                />
-              ) : field.type === "radio" ? (
-                <Box>
-                  <Typography variant="subtitle1">
-                    {field.label} {field.required && "*"}
-                  </Typography>
-                  {field.options?.map((opt, i) => (
-                    <FormControlLabel
-                      key={i}
-                      control={<Checkbox disabled />}
-                      label={opt}
-                    />
-                  ))}
-                </Box>
-              ) : field.type === "checkbox" ? (
-                <Box>
-                  <Typography variant="subtitle1">
-                    {field.label} {field.required && "*"}
-                  </Typography>
-                  {field.options?.map((opt, i) => (
-                    <FormControlLabel
-                      key={i}
-                      control={<Checkbox />}
-                      label={opt}
-                    />
-                  ))}
-                </Box>
-              ) : field.type === "select" ? (
-                <TextField
-                  select
-                  label={field.label}
-                  required={field.required}
-                  fullWidth
-                  variant="outlined"
-                >
-                  {field.options?.map((opt, i) => (
-                    <MenuItem key={i} value={opt}>
-                      {opt}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              ) : null}
-            </Box>
-          ))}
-        </Box>
-      )}
-
       <Button
         variant="contained"
         color="primary"
@@ -347,48 +313,218 @@ const FormBuilder = ({ setActiveTab }) => {
         {editingFormId ? "Update Form" : "Save Form"}
       </Button>
 
+      {/* --- LIVE FORM PREVIEW WITH VALIDATION --- */}
+      <Box sx={{ mt: 5, mb: 8 }}>
+        <Typography variant="h5" gutterBottom>
+          Live Form Preview
+        </Typography>
+        {fields.length === 0 ? (
+          <Typography>No fields to preview</Typography>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            {fields.map((field) => {
+              if (field.type === "heading") {
+                return (
+                  <Typography
+                    key={field.id}
+                    variant="h6"
+                    sx={{ fontWeight: "bold", mt: 3, mb: 1 }}
+                  >
+                    {field.label}
+                  </Typography>
+                );
+              }
+
+              // Render fields by type
+              switch (field.type) {
+                case "text":
+                  return (
+                    <Controller
+                      key={field.id}
+                      name={field.id}
+                      control={control}
+                      defaultValue=""
+                      render={({ field: controllerField }) => (
+                        <TextField
+                          {...controllerField}
+                          label={field.label}
+                          fullWidth
+                          margin="normal"
+                          error={!!errors[field.id]}
+                          helperText={errors[field.id]?.message}
+                        />
+                      )}
+                    />
+                  );
+
+                case "date":
+                  return (
+                    <Controller
+                      key={field.id}
+                      name={field.id}
+                      control={control}
+                      defaultValue=""
+                      render={({ field: controllerField }) => (
+                        <TextField
+                          {...controllerField}
+                          type="date"
+                          label={field.label}
+                          fullWidth
+                          margin="normal"
+                          InputLabelProps={{ shrink: true }}
+                          error={!!errors[field.id]}
+                          helperText={errors[field.id]?.message}
+                        />
+                      )}
+                    />
+                  );
+
+                case "select":
+                  return (
+                    <Controller
+                      key={field.id}
+                      name={field.id}
+                      control={control}
+                      defaultValue=""
+                      render={({ field: controllerField }) => (
+                        <TextField
+                          {...controllerField}
+                          select
+                          label={field.label}
+                          fullWidth
+                          margin="normal"
+                          error={!!errors[field.id]}
+                          helperText={errors[field.id]?.message}
+                        >
+                          {field.options.map((option, i) => (
+                            <MenuItem key={i} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    />
+                  );
+
+                case "radio":
+                  return (
+                    <Controller
+                      key={field.id}
+                      name={field.id}
+                      control={control}
+                      defaultValue=""
+                      render={({ field: controllerField }) => (
+                        <Box sx={{ mt: 2, mb: 1 }}>
+                          <Typography sx={{ mb: 1 }}>{field.label}</Typography>
+                          {field.options.map((option, i) => (
+                            <FormControlLabel
+                              key={i}
+                              control={
+                                <Checkbox
+                                  checked={controllerField.value === option}
+                                  onChange={() =>
+                                    controllerField.onChange(option)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                          ))}
+                          {errors[field.id] && (
+                            <Typography color="error" variant="body2">
+                              {errors[field.id]?.message}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    />
+                  );
+
+                case "checkbox":
+                  return (
+                    <Controller
+                      key={field.id}
+                      name={field.id}
+                      control={control}
+                      defaultValue={[]}
+                      render={({ field: controllerField }) => {
+                        const handleChange = (option) => {
+                          const currentValue = controllerField.value || [];
+                          if (currentValue.includes(option)) {
+                            controllerField.onChange(
+                              currentValue.filter((v) => v !== option)
+                            );
+                          } else {
+                            controllerField.onChange([...currentValue, option]);
+                          }
+                        };
+
+                        return (
+                          <Box sx={{ mt: 2, mb: 1 }}>
+                            <Typography sx={{ mb: 1 }}>
+                              {field.label}
+                            </Typography>
+                            {field.options.map((option, i) => (
+                              <FormControlLabel
+                                key={i}
+                                control={
+                                  <Checkbox
+                                    checked={
+                                      controllerField.value
+                                        ? controllerField.value.includes(option)
+                                        : false
+                                    }
+                                    onChange={() => handleChange(option)}
+                                  />
+                                }
+                                label={option}
+                              />
+                            ))}
+                            {errors[field.id] && (
+                              <Typography color="error" variant="body2">
+                                {errors[field.id]?.message}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      }}
+                    />
+                  );
+
+                default:
+                  return null;
+              }
+            })}
+
+            <Button
+              variant="contained"
+              color="success"
+              type="submit"
+              sx={{ mt: 3 }}
+            >
+              Submit Preview Form
+            </Button>
+          </form>
+        )}
+      </Box>
+
       {showSuccess && (
         <Box
           sx={{
             position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            backdropFilter: "blur(6px)",
-            backgroundColor: "rgba(0, 0, 0, 0)",
-            zIndex: 2000,
+            top: "15%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            bgcolor: "white",
+            boxShadow: 3,
+            p: 3,
+            borderRadius: 2,
+            textAlign: "center",
+            zIndex: 9999,
           }}
         >
-          <Box
-            sx={{
-              background: "rgba(255, 255, 255, 0)",
-              borderRadius: "16px",
-              padding: "32px",
-              textAlign: "center",
-              color: "#fff",
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
-              border: "1px solid rgba(3, 5, 89, 0.36)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-            }}
-          >
-            <img
-              src={tickGif}
-              alt="Success"
-              style={{ width: "200px", height: "200px", marginBottom: "20px" }}
-            />
-
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: "black" }}
-            >
-              {successMessage}
-            </Typography>
-          </Box>
+          <img src={tickGif} alt="Success" width={80} />
+          <Typography sx={{ mt: 2 }}>{successMessage}</Typography>
         </Box>
       )}
     </Box>
