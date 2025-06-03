@@ -11,6 +11,7 @@ import {
   Divider,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
+import tickGif from "../../assets/tick.gif";
 
 const FormBuilder = ({ setActiveTab }) => {
   const [formTitle, setFormTitle] = useState("");
@@ -23,6 +24,8 @@ const FormBuilder = ({ setActiveTab }) => {
     required: false,
     options: "",
   });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const editingId = localStorage.getItem("formToEdit");
@@ -54,6 +57,10 @@ const FormBuilder = ({ setActiveTab }) => {
         .filter((opt) => opt !== "");
     } else {
       delete processedField.options;
+    }
+
+    if (newField.type === "heading") {
+      processedField.required = false;
     }
 
     setFields([...fields, processedField]);
@@ -88,7 +95,6 @@ const FormBuilder = ({ setActiveTab }) => {
           : form
       );
       localStorage.setItem("forms", JSON.stringify(updatedForms));
-      alert("Form updated successfully!");
     } else {
       const newForm = {
         id: uuidv4(),
@@ -98,10 +104,19 @@ const FormBuilder = ({ setActiveTab }) => {
         createdAt: new Date().toISOString(),
       };
       localStorage.setItem("forms", JSON.stringify([...savedForms, newForm]));
-      alert("Form saved successfully!");
     }
 
-    setActiveTab("savedForms");
+    setSuccessMessage(
+      editingFormId
+        ? "Form updated successfully!"
+        : "Form created successfully!"
+    );
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+      setActiveTab("forms");
+    }, 3000);
   };
 
   return (
@@ -128,6 +143,7 @@ const FormBuilder = ({ setActiveTab }) => {
         onChange={(e) => setFormDescription(e.target.value)}
       />
 
+      {/* Add New Field Section  */}
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6">Add New Field</Typography>
 
@@ -154,6 +170,7 @@ const FormBuilder = ({ setActiveTab }) => {
           <MenuItem value="radio">Radio</MenuItem>
           <MenuItem value="checkbox">Checkbox</MenuItem>
           <MenuItem value="select">Dropdown</MenuItem>
+          <MenuItem value="heading">Heading</MenuItem>
         </TextField>
 
         {["radio", "checkbox", "select"].includes(newField.type) && (
@@ -169,24 +186,27 @@ const FormBuilder = ({ setActiveTab }) => {
           />
         )}
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={newField.required}
-              onChange={(e) =>
-                setNewField({ ...newField, required: e.target.checked })
-              }
-            />
-          }
-          label="Required"
-          sx={{ mt: 2 }}
-        />
+        {newField.type !== "heading" && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={newField.required}
+                onChange={(e) =>
+                  setNewField({ ...newField, required: e.target.checked })
+                }
+              />
+            }
+            label="Required"
+            sx={{ mt: 2 }}
+          />
+        )}
 
         <Button variant="contained" sx={{ mt: 2 }} onClick={handleAddField}>
           Add Field
         </Button>
       </Paper>
 
+      {/* Added Fields Section  */}
       <Typography variant="h6" gutterBottom>
         Fields Added
       </Typography>
@@ -201,16 +221,27 @@ const FormBuilder = ({ setActiveTab }) => {
             elevation={2}
             sx={{ mb: 2, p: 2, border: "1px solid #ccc" }}
           >
-            <Typography>
-              <strong>
+            {field.type === "heading" ? (
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: "bold", color: "primary.main" }}
+              >
                 {idx + 1}. {field.label}
-              </strong>{" "}
-              ({field.type}){field.required && " *"}
-            </Typography>
-            {field.options && Array.isArray(field.options) && (
-              <Typography variant="body2" color="text.secondary">
-                Options: {field.options.join(", ")}
               </Typography>
+            ) : (
+              <>
+                <Typography>
+                  <strong>
+                    {idx + 1}. {field.label}
+                  </strong>{" "}
+                  ({field.type}){field.required && " *"}
+                </Typography>
+                {field.options && Array.isArray(field.options) && (
+                  <Typography variant="body2" color="text.secondary">
+                    Options: {field.options.join(", ")}
+                  </Typography>
+                )}
+              </>
             )}
             <Button
               size="small"
@@ -224,6 +255,89 @@ const FormBuilder = ({ setActiveTab }) => {
         ))
       )}
 
+      {/* Live Form Preview Section  */}
+      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+        Live Form Preview
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+
+      {fields.length === 0 ? (
+        <Typography variant="body2">
+          No preview available. Please add fields.
+        </Typography>
+      ) : (
+        <Box
+          component="form"
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
+          {fields.map((field) => (
+            <Box key={field.id}>
+              {field.type === "heading" ? (
+                <Typography variant="h6" color="primary">
+                  {field.label}
+                </Typography>
+              ) : field.type === "text" ? (
+                <TextField
+                  label={field.label}
+                  required={field.required}
+                  fullWidth
+                  variant="outlined"
+                />
+              ) : field.type === "date" ? (
+                <TextField
+                  type="date"
+                  label={field.label}
+                  required={field.required}
+                  fullWidth
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                />
+              ) : field.type === "radio" ? (
+                <Box>
+                  <Typography variant="subtitle1">
+                    {field.label} {field.required && "*"}
+                  </Typography>
+                  {field.options?.map((opt, i) => (
+                    <FormControlLabel
+                      key={i}
+                      control={<Checkbox disabled />}
+                      label={opt}
+                    />
+                  ))}
+                </Box>
+              ) : field.type === "checkbox" ? (
+                <Box>
+                  <Typography variant="subtitle1">
+                    {field.label} {field.required && "*"}
+                  </Typography>
+                  {field.options?.map((opt, i) => (
+                    <FormControlLabel
+                      key={i}
+                      control={<Checkbox />}
+                      label={opt}
+                    />
+                  ))}
+                </Box>
+              ) : field.type === "select" ? (
+                <TextField
+                  select
+                  label={field.label}
+                  required={field.required}
+                  fullWidth
+                  variant="outlined"
+                >
+                  {field.options?.map((opt, i) => (
+                    <MenuItem key={i} value={opt}>
+                      {opt}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ) : null}
+            </Box>
+          ))}
+        </Box>
+      )}
+
       <Button
         variant="contained"
         color="primary"
@@ -232,6 +346,51 @@ const FormBuilder = ({ setActiveTab }) => {
       >
         {editingFormId ? "Update Form" : "Save Form"}
       </Button>
+
+      {showSuccess && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backdropFilter: "blur(6px)",
+            backgroundColor: "rgba(0, 0, 0, 0)",
+            zIndex: 2000,
+          }}
+        >
+          <Box
+            sx={{
+              background: "rgba(255, 255, 255, 0)",
+              borderRadius: "16px",
+              padding: "32px",
+              textAlign: "center",
+              color: "#fff",
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+              border: "1px solid rgba(3, 5, 89, 0.36)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
+          >
+            <img
+              src={tickGif}
+              alt="Success"
+              style={{ width: "200px", height: "200px", marginBottom: "20px" }}
+            />
+
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: "bold", color: "black" }}
+            >
+              {successMessage}
+            </Typography>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

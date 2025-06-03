@@ -17,12 +17,27 @@ const FormPreview = ({ form }) => {
       <Typography variant="h5" gutterBottom>
         {form?.title || "Untitled Form"}
       </Typography>
+      <Typography variant="body1" gutterBottom>
+        {form?.description || ""}
+      </Typography>
       <Box
         component="form"
         sx={{ display: "flex", flexDirection: "column", gap: 2 }}
       >
         {form?.fields?.map((field, index) => {
           if (!field || !field.label) return null;
+
+          if (field.type === "heading") {
+            return (
+              <Typography
+                key={index}
+                variant="h6"
+                sx={{ mt: 3, mb: 1, color: "primary.main", fontWeight: "bold" }}
+              >
+                {field.label}
+              </Typography>
+            );
+          }
 
           switch (field.type) {
             case "text":
