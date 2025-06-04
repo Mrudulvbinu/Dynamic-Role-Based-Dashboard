@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -10,18 +10,17 @@ import {
   Stack,
 } from "@mui/material";
 
-import FormPreview from "./FormPreview";
 import PrintableForm from "./PrintableForm";
 import DynamicTable from "../DynamicTable";
+import { generatePDF } from "./PdfGenerator";
 
 const SavedForms = ({ setActiveTab }) => {
   const [forms, setForms] = useState([]);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
-
   const [openLivePreview, setOpenLivePreview] = useState(false);
-  const [openPrintablePreview, setOpenPrintablePreview] = useState(false);
+  const printRef = useRef();
 
   useEffect(() => {
     const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
@@ -62,20 +61,30 @@ const SavedForms = ({ setActiveTab }) => {
     setOpenLivePreview(true);
   };
 
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(
-      "<html><head><title>Print Form</title></head><body>"
-    );
-    printWindow.document.write(
-      document.getElementById("printable-area").innerHTML
-    );
-    printWindow.document.write("</body></html>");
-    printWindow.document.close();
-    printWindow.print();
+  const handlePrint = async () => {
+    try {
+      await generatePDF(printRef.current, selectedForm?.title);
+      setOpenLivePreview(false);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
   };
 
-  // Table columns definition
+  const countTotalFields = (fields) => {
+    let count = 0;
+    fields.forEach((field) => {
+      count++;
+      if (field.options) {
+        field.options.forEach((option) => {
+          if (option.nestedFields && option.nestedFields.length > 0) {
+            count += option.nestedFields.length;
+          }
+        });
+      }
+    });
+    return count;
+  };
+
   const columns = [
     { key: "title", label: "Form Title" },
     { key: "fieldsCount", label: "No. of Fields" },
@@ -83,13 +92,17 @@ const SavedForms = ({ setActiveTab }) => {
     { key: "actions", label: "Actions" },
   ];
 
-  // Prepare data for the DynamicTable
   const tableData = forms.map((form) => ({
     title: form.title,
-    fieldsCount: form.fields.length,
+    fieldsCount: countTotalFields(form.fields),
     createdAt: form.createdAt ? new Date(form.createdAt).toLocaleString() : "—",
     actions: (
-      <Stack direction="row" spacing={1}>
+      <Stack
+        direction="row"
+        spacing={2}
+        justifyContent="flex-start"
+        alignItems="center"
+      >
         <Button
           variant="outlined"
           color="success"
@@ -119,10 +132,6 @@ const SavedForms = ({ setActiveTab }) => {
 
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Saved Forms
-      </Typography>
-
       {forms.length === 0 ? (
         <Typography>No forms saved yet</Typography>
       ) : (
@@ -148,7 +157,7 @@ const SavedForms = ({ setActiveTab }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Live Preview Dialog */}
+      {/* Form Preview Dialog */}
       <Dialog
         open={openLivePreview}
         onClose={() => setOpenLivePreview(false)}
@@ -157,41 +166,15 @@ const SavedForms = ({ setActiveTab }) => {
       >
         <DialogTitle>Form Preview</DialogTitle>
         <DialogContent>
-          <FormPreview form={selectedForm} />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenLivePreview(false);
-              setOpenPrintablePreview(true);
-            }}
-            color="primary"
-            variant="outlined"
-          >
-            Print Form
-          </Button>
-          <Button onClick={() => setOpenLivePreview(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Printable Preview Dialog */}
-      <Dialog
-        open={openPrintablePreview}
-        onClose={() => setOpenPrintablePreview(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Print Preview</DialogTitle>
-        <DialogContent>
-          <div id="printable-area">
-            <PrintableForm form={selectedForm} />
+          <div ref={printRef}>
+            {selectedForm && <PrintableForm form={selectedForm} />}
           </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={handlePrint} color="primary" variant="contained">
-            Print Now
+            Download PDF
           </Button>
-          <Button onClick={() => setOpenPrintablePreview(false)}>Close</Button>
+          <Button onClick={() => setOpenLivePreview(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

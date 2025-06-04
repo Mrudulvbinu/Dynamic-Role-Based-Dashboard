@@ -36,7 +36,11 @@ const DynamicTable = ({ data, columns }) => {
               {columns.map((column) => (
                 <TableCell
                   key={`${rowIndex}-${column.key}`}
-                  sx={{ fontSize: "18px", textAlign: "center" }}
+                  sx={{
+                    fontSize: "18px",
+                    textAlign: "center",
+                    alignItems: "center",
+                  }}
                 >
                   {row[column.key]}
                 </TableCell>

@@ -4,18 +4,33 @@ import {
   Button,
   MenuItem,
   Checkbox,
+  Radio,
+  RadioGroup,
+  FormLabel,
   FormControlLabel,
   Typography,
   Box,
   Paper,
   Divider,
+  Collapse,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Select,
+  InputLabel,
+  FormControl,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 import tickGif from "../../assets/tick.gif";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import PillInput from "./PillInput";
 
 const FormBuilder = ({ setActiveTab }) => {
   const [formTitle, setFormTitle] = useState("");
@@ -27,9 +42,21 @@ const FormBuilder = ({ setActiveTab }) => {
     type: "text",
     required: false,
     options: "",
+    parsedOptions: [],
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [expandedOptionIndex, setExpandedOptionIndex] = useState(null);
+
+  // State for nested field dialog
+  const [nestedFieldDialogOpen, setNestedFieldDialogOpen] = useState(false);
+  const [currentOptionIndex, setCurrentOptionIndex] = useState(null);
+  const [newNestedField, setNewNestedField] = useState({
+    label: "",
+    type: "text",
+    required: false,
+    options: "",
+  });
 
   useEffect(() => {
     const editingId = localStorage.getItem("formToEdit");
@@ -55,10 +82,9 @@ const FormBuilder = ({ setActiveTab }) => {
     };
 
     if (["radio", "checkbox", "select"].includes(newField.type)) {
-      processedField.options = newField.options
-        .split(",")
-        .map((opt) => opt.trim())
-        .filter((opt) => opt !== "");
+      processedField.options = (newField.parsedOptions || []).filter(
+        (opt) => opt.label.trim() !== ""
+      );
     } else {
       delete processedField.options;
     }
@@ -68,12 +94,12 @@ const FormBuilder = ({ setActiveTab }) => {
     }
 
     setFields([...fields, processedField]);
-
     setNewField({
       label: "",
       type: "text",
       required: false,
       options: "",
+      parsedOptions: [],
     });
   };
 
@@ -123,7 +149,6 @@ const FormBuilder = ({ setActiveTab }) => {
     }, 3000);
   };
 
-  // Dynamic Yup schema from fields
   const validationSchema = useMemo(() => {
     const shape = {};
     fields.forEach((field) => {
@@ -151,6 +176,23 @@ const FormBuilder = ({ setActiveTab }) => {
             shape[field.id] = yup.string().required("This field is required");
         }
       }
+      // Nested fields validation
+      field.options?.forEach((option) => {
+        option.nestedFields?.forEach((nestedField) => {
+          if (nestedField.required) {
+            const nestedFieldName = `${field.id}.nested.${nestedField.id}`;
+            switch (nestedField.type) {
+              case "text":
+              case "select":
+              case "radio":
+                shape[nestedFieldName] = yup
+                  .string()
+                  .required("This nested field is required");
+                break;
+            }
+          }
+        });
+      });
     });
     return yup.object().shape(shape);
   }, [fields]);
@@ -160,14 +202,88 @@ const FormBuilder = ({ setActiveTab }) => {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm({
     resolver: yupResolver(validationSchema),
     mode: "onTouched",
   });
 
+  const formValues = watch();
+
   const onSubmit = (data) => {
-    alert("Form submitted! Data:\n" + JSON.stringify(data, null, 2));
+    // Flatten the nested structure for submission
+    const flattenedData = {};
+
+    Object.keys(data).forEach((key) => {
+      if (key.includes(".nested.")) {
+        // Handle nested fields
+        const [parentId, , nestedId] = key.split(".");
+        if (!flattenedData[parentId]) {
+          flattenedData[parentId] = {
+            value: data[parentId],
+            nested: {},
+          };
+        }
+        flattenedData[parentId].nested[nestedId] = data[key];
+      } else {
+        // Handle regular fields
+        flattenedData[key] = data[key];
+      }
+    });
+
+    console.log("Form submitted! Data:", flattenedData);
+    alert("Form submitted! Check console for complete data structure.");
     reset();
+  };
+
+  const toggleOptionExpand = (index) => {
+    setExpandedOptionIndex(expandedOptionIndex === index ? null : index);
+  };
+
+  const openNestedFieldDialog = (optIdx) => {
+    setCurrentOptionIndex(optIdx);
+    setNestedFieldDialogOpen(true);
+  };
+
+  const closeNestedFieldDialog = () => {
+    setNestedFieldDialogOpen(false);
+    setNewNestedField({
+      label: "",
+      type: "text",
+      required: false,
+      options: "",
+    });
+  };
+
+  const addNestedField = () => {
+    if (!newNestedField.label.trim()) return;
+
+    const processedNestedField = {
+      ...newNestedField,
+      id: uuidv4(),
+    };
+
+    if (["radio", "checkbox", "select"].includes(newNestedField.type)) {
+      processedNestedField.options = newNestedField.options
+        .split(",")
+        .filter((opt) => opt.trim() !== "")
+        .map((opt) => ({
+          label: opt.trim(),
+          value: opt.trim().toLowerCase().replace(/\s+/g, "_"),
+        }));
+    } else {
+      delete processedNestedField.options;
+    }
+
+    const updatedOptions = [...newField.parsedOptions];
+    updatedOptions[currentOptionIndex].nestedFields.push(processedNestedField);
+
+    setNewField({
+      ...newField,
+      parsedOptions: updatedOptions,
+    });
+
+    closeNestedFieldDialog();
   };
 
   return (
@@ -224,16 +340,82 @@ const FormBuilder = ({ setActiveTab }) => {
         </TextField>
 
         {["radio", "checkbox", "select"].includes(newField.type) && (
-          <TextField
-            label="Options (comma-separated)"
-            variant="outlined"
-            fullWidth
-            sx={{ mt: 2 }}
-            value={newField.options}
-            onChange={(e) =>
-              setNewField({ ...newField, options: e.target.value })
-            }
-          />
+          <>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Options:
+              </Typography>
+              <PillInput
+                options={newField.parsedOptions}
+                onChange={(newOptions) => {
+                  setNewField({
+                    ...newField,
+                    parsedOptions: newOptions,
+                    options: newOptions.map((opt) => opt.label).join(","),
+                  });
+                }}
+              />
+            </Box>
+
+            {newField.parsedOptions.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+                  Configure Options:
+                </Typography>
+                {newField.parsedOptions.map((option, optIdx) => (
+                  <Box key={optIdx} sx={{ mt: 1 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        bgcolor: "#f5f5f5",
+                        p: 1,
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography sx={{ flexGrow: 1 }}>
+                        {option.label} ({option.value})
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleOptionExpand(optIdx)}
+                      >
+                        {expandedOptionIndex === optIdx ? (
+                          <ExpandLessIcon />
+                        ) : (
+                          <ExpandMoreIcon />
+                        )}
+                      </IconButton>
+                    </Box>
+                    <Collapse in={expandedOptionIndex === optIdx}>
+                      <Box sx={{ pl: 2, pt: 1 }}>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          Nested Fields for this option:
+                        </Typography>
+                        {option.nestedFields?.map((nf, nfIdx) => (
+                          <Typography
+                            key={nfIdx}
+                            sx={{ fontSize: "0.9rem", color: "gray" }}
+                          >
+                            → {nf.label} ({nf.type})
+                            {nf.options && ` [${nf.options.length} options]`}
+                          </Typography>
+                        ))}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ mt: 1 }}
+                          onClick={() => openNestedFieldDialog(optIdx)}
+                        >
+                          + Add Nested Field
+                        </Button>
+                      </Box>
+                    </Collapse>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </>
         )}
 
         {newField.type !== "heading" && (
@@ -255,6 +437,95 @@ const FormBuilder = ({ setActiveTab }) => {
           Add Field
         </Button>
       </Paper>
+
+      {/* Nested Field Dialog */}
+      <Dialog
+        open={nestedFieldDialogOpen}
+        onClose={closeNestedFieldDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Nested Field</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Label"
+            variant="outlined"
+            fullWidth
+            sx={{ mt: 2 }}
+            value={newNestedField.label}
+            onChange={(e) =>
+              setNewNestedField({ ...newNestedField, label: e.target.value })
+            }
+          />
+
+          <TextField
+            label="Field Type"
+            variant="outlined"
+            select
+            fullWidth
+            sx={{ mt: 2 }}
+            value={newNestedField.type}
+            onChange={(e) =>
+              setNewNestedField({ ...newNestedField, type: e.target.value })
+            }
+          >
+            <MenuItem value="text">Text</MenuItem>
+            <MenuItem value="date">Date</MenuItem>
+            <MenuItem value="radio">Radio</MenuItem>
+            <MenuItem value="checkbox">Checkbox</MenuItem>
+            <MenuItem value="select">Dropdown</MenuItem>
+          </TextField>
+
+          {["radio", "checkbox", "select"].includes(newNestedField.type) && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Options:
+              </Typography>
+              <PillInput
+                options={
+                  newNestedField.options
+                    ? newNestedField.options
+                        .split(",")
+                        .filter((opt) => opt.trim() !== "")
+                        .map((opt) => ({
+                          label: opt.trim(),
+                          value: opt.trim().toLowerCase().replace(/\s+/g, "_"),
+                        }))
+                    : []
+                }
+                onChange={(newOptions) => {
+                  setNewNestedField({
+                    ...newNestedField,
+                    options: newOptions.map((opt) => opt.label).join(","),
+                  });
+                }}
+              />
+            </Box>
+          )}
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={newNestedField.required}
+                onChange={(e) =>
+                  setNewNestedField({
+                    ...newNestedField,
+                    required: e.target.checked,
+                  })
+                }
+              />
+            }
+            label="Required"
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeNestedFieldDialog}>Cancel</Button>
+          <Button onClick={addNestedField} color="primary">
+            Add Field
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Typography variant="h5" gutterBottom>
         Fields Added
@@ -286,9 +557,20 @@ const FormBuilder = ({ setActiveTab }) => {
                   ({field.type}){field.required && " *"}
                 </Typography>
                 {field.options && Array.isArray(field.options) && (
-                  <Typography variant="body2" color="text.secondary">
-                    Options: {field.options.join(", ")}
-                  </Typography>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Options:
+                    </Typography>
+                    {field.options.map((opt, i) => (
+                      <Box key={i} sx={{ pl: 2 }}>
+                        <Typography variant="body2">
+                          - {opt.label}{" "}
+                          {opt.nestedFields?.length > 0 &&
+                            `(${opt.nestedFields.length} nested)`}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 )}
               </>
             )}
@@ -335,7 +617,172 @@ const FormBuilder = ({ setActiveTab }) => {
                 );
               }
 
-              // Render fields by type
+              const renderNestedField = (
+                nestedField,
+                parentFieldId,
+                parentValue,
+                level = 0
+              ) => {
+                const fieldName = `${parentFieldId}.nested.${nestedField.id}`;
+                const indent = level * 2;
+
+                switch (nestedField.type) {
+                  case "select":
+                    return (
+                      <Box key={nestedField.id} sx={{ pl: indent, mt: 1 }}>
+                        <Controller
+                          name={fieldName}
+                          control={control}
+                          defaultValue=""
+                          render={({ field: controllerField }) => (
+                            <FormControl fullWidth margin="normal">
+                              <InputLabel>{`↳ ${nestedField.label}`}</InputLabel>
+                              <Select
+                                {...controllerField}
+                                label={`↳ ${nestedField.label}`}
+                              >
+                                {nestedField.options?.map((opt, i) => (
+                                  <MenuItem key={i} value={opt.value}>
+                                    {opt.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                      </Box>
+                    );
+                  case "date":
+                    return (
+                      <Box key={nestedField.id} sx={{ pl: indent, mt: 1 }}>
+                        <Controller
+                          name={fieldName}
+                          control={control}
+                          defaultValue=""
+                          render={({ field: controllerField }) => (
+                            <TextField
+                              {...controllerField}
+                              label={`↳ ${nestedField.label}`}
+                              type="date"
+                              fullWidth
+                              margin="normal"
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          )}
+                        />
+                      </Box>
+                    );
+                  case "radio":
+                    return (
+                      <Box key={nestedField.id} sx={{ pl: indent, mt: 1 }}>
+                        <FormLabel>{`↳ ${nestedField.label}`}</FormLabel>
+                        <Controller
+                          name={fieldName}
+                          control={control}
+                          defaultValue=""
+                          render={({ field: controllerField }) => (
+                            <RadioGroup {...controllerField}>
+                              {nestedField.options?.map((opt, i) => (
+                                <Box key={i}>
+                                  <FormControlLabel
+                                    value={opt.value}
+                                    control={<Radio />}
+                                    label={opt.label}
+                                  />
+                                  {controllerField.value === opt.value &&
+                                    opt.nestedFields?.map((nf) =>
+                                      renderNestedField(
+                                        nf,
+                                        opt.value,
+                                        level + 1
+                                      )
+                                    )}
+                                </Box>
+                              ))}
+                            </RadioGroup>
+                          )}
+                        />
+                      </Box>
+                    );
+                  case "checkbox":
+                    return (
+                      <Box key={nestedField.id} sx={{ pl: indent, mt: 1 }}>
+                        <FormLabel>{`↳ ${nestedField.label}`}</FormLabel>
+                        <Controller
+                          name={fieldName}
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field: controllerField }) => (
+                            <Box>
+                              {nestedField.options?.map((opt, i) => (
+                                <FormControlLabel
+                                  key={i}
+                                  control={
+                                    <Checkbox
+                                      checked={(
+                                        controllerField.value || []
+                                      ).includes(opt.value)}
+                                      onChange={(e) => {
+                                        const newValue = e.target.checked
+                                          ? [
+                                              ...(controllerField.value || []),
+                                              opt.value,
+                                            ]
+                                          : (
+                                              controllerField.value || []
+                                            ).filter((v) => v !== opt.value);
+                                        controllerField.onChange(newValue);
+                                      }}
+                                    />
+                                  }
+                                  label={opt.label}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        />
+                      </Box>
+                    );
+                  case "select":
+                    return (
+                      <Box key={field.id}>
+                        <Controller
+                          name={field.id}
+                          control={control}
+                          defaultValue=""
+                          render={({ field: controllerField }) => (
+                            <FormControl fullWidth margin="normal">
+                              <InputLabel>{field.label}</InputLabel>
+                              <Select
+                                {...controllerField}
+                                label={field.label}
+                                error={!!errors[field.id]}
+                              >
+                                {field.options?.map((option, i) => (
+                                  <MenuItem key={i} value={option.value}>
+                                    {option.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                        {field.options
+                          ?.find((opt) => opt.value === formValues[field.id])
+                          ?.nestedFields?.map((nestedField) =>
+                            renderNestedField(
+                              nestedField,
+                              field.id,
+                              formValues[field.id]
+                            )
+                          )}
+                      </Box>
+                    );
+                  default:
+                    return null;
+                }
+              };
+
               switch (field.type) {
                 case "text":
                   return (
@@ -381,114 +828,136 @@ const FormBuilder = ({ setActiveTab }) => {
 
                 case "select":
                   return (
-                    <Controller
-                      key={field.id}
-                      name={field.id}
-                      control={control}
-                      defaultValue=""
-                      render={({ field: controllerField }) => (
-                        <TextField
-                          {...controllerField}
-                          select
-                          label={field.label}
-                          fullWidth
-                          margin="normal"
-                          error={!!errors[field.id]}
-                          helperText={errors[field.id]?.message}
-                        >
-                          {field.options.map((option, i) => (
-                            <MenuItem key={i} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      )}
-                    />
+                    <Box key={field.id}>
+                      <Controller
+                        name={field.id}
+                        control={control}
+                        defaultValue=""
+                        render={({ field: controllerField }) => (
+                          <FormControl fullWidth margin="normal">
+                            <InputLabel>{field.label}</InputLabel>
+                            <Select
+                              {...controllerField}
+                              label={field.label}
+                              error={!!errors[field.id]}
+                            >
+                              {field.options?.map((option, i) => (
+                                <MenuItem key={i} value={option.value}>
+                                  {option.label}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        )}
+                      />
+                      {field.options
+                        ?.find((opt) => opt.value === formValues[field.id])
+                        ?.nestedFields?.map((nestedField) =>
+                          renderNestedField(nestedField, formValues[field.id])
+                        )}
+                    </Box>
                   );
 
                 case "radio":
                   return (
-                    <Controller
-                      key={field.id}
-                      name={field.id}
-                      control={control}
-                      defaultValue=""
-                      render={({ field: controllerField }) => (
-                        <Box sx={{ mt: 2, mb: 1 }}>
-                          <Typography sx={{ mb: 1 }}>{field.label}</Typography>
-                          {field.options.map((option, i) => (
-                            <FormControlLabel
-                              key={i}
-                              control={
-                                <Checkbox
-                                  checked={controllerField.value === option}
-                                  onChange={() =>
-                                    controllerField.onChange(option)
-                                  }
-                                />
-                              }
-                              label={option}
-                            />
-                          ))}
-                          {errors[field.id] && (
-                            <Typography color="error" variant="body2">
-                              {errors[field.id]?.message}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-                    />
-                  );
-
-                case "checkbox":
-                  return (
-                    <Controller
-                      key={field.id}
-                      name={field.id}
-                      control={control}
-                      defaultValue={[]}
-                      render={({ field: controllerField }) => {
-                        const handleChange = (option) => {
-                          const currentValue = controllerField.value || [];
-                          if (currentValue.includes(option)) {
-                            controllerField.onChange(
-                              currentValue.filter((v) => v !== option)
-                            );
-                          } else {
-                            controllerField.onChange([...currentValue, option]);
-                          }
-                        };
-
-                        return (
+                    <Box key={field.id}>
+                      <Controller
+                        name={field.id}
+                        control={control}
+                        defaultValue=""
+                        render={({ field: controllerField }) => (
                           <Box sx={{ mt: 2, mb: 1 }}>
                             <Typography sx={{ mb: 1 }}>
                               {field.label}
                             </Typography>
-                            {field.options.map((option, i) => (
-                              <FormControlLabel
-                                key={i}
-                                control={
-                                  <Checkbox
-                                    checked={
-                                      controllerField.value
-                                        ? controllerField.value.includes(option)
-                                        : false
-                                    }
-                                    onChange={() => handleChange(option)}
+                            <RadioGroup {...controllerField}>
+                              {field.options?.map((option, i) => (
+                                <Box key={i}>
+                                  <FormControlLabel
+                                    value={option.value}
+                                    control={<Radio />}
+                                    label={option.label}
                                   />
-                                }
-                                label={option}
-                              />
-                            ))}
+                                  {controllerField.value === option.value &&
+                                    option.nestedFields?.map((nestedField) =>
+                                      renderNestedField(
+                                        nestedField,
+                                        option.value
+                                      )
+                                    )}
+                                </Box>
+                              ))}
+                            </RadioGroup>
                             {errors[field.id] && (
                               <Typography color="error" variant="body2">
                                 {errors[field.id]?.message}
                               </Typography>
                             )}
                           </Box>
-                        );
-                      }}
-                    />
+                        )}
+                      />
+                    </Box>
+                  );
+
+                case "checkbox":
+                  return (
+                    <Box key={field.id}>
+                      <Controller
+                        name={field.id}
+                        control={control}
+                        defaultValue={[]}
+                        render={({ field: controllerField }) => (
+                          <Box sx={{ mt: 2, mb: 1 }}>
+                            <Typography sx={{ mb: 1 }}>
+                              {field.label}
+                            </Typography>
+                            {field.options?.map((option, i) => {
+                              const checked = (
+                                controllerField.value || []
+                              ).includes(option.value);
+                              return (
+                                <Box key={i}>
+                                  <FormControlLabel
+                                    control={
+                                      <Checkbox
+                                        checked={checked}
+                                        onChange={(e) => {
+                                          const newValue = e.target.checked
+                                            ? [
+                                                ...(controllerField.value ||
+                                                  []),
+                                                option.value,
+                                              ]
+                                            : (
+                                                controllerField.value || []
+                                              ).filter(
+                                                (v) => v !== option.value
+                                              );
+                                          controllerField.onChange(newValue);
+                                        }}
+                                      />
+                                    }
+                                    label={option.label}
+                                  />
+                                  {checked &&
+                                    option.nestedFields?.map((nestedField) =>
+                                      renderNestedField(
+                                        nestedField,
+                                        option.value
+                                      )
+                                    )}
+                                </Box>
+                              );
+                            })}
+                            {errors[field.id] && (
+                              <Typography color="error" variant="body2">
+                                {errors[field.id]?.message}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      />
+                    </Box>
                   );
 
                 default:
