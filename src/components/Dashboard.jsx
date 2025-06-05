@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import DownloadIcon from "@mui/icons-material/Download";
 import StatusCard from "./widgets/StatusCard";
 import ChartWidget from "./widgets/ChartWidget";
 import ActivityTable from "./widgets/ActivityTable";
@@ -43,6 +44,7 @@ import DynamicTable from "./DynamicTable";
 import { patientTableData, doctorTableData } from "../mockData";
 import FormBuilder from "./formbuilder/FormBuilder";
 import SavedForms from "./formbuilder/SavedForms";
+import UseForms from "./formbuilder/UseForms";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -305,6 +307,12 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
           {
             tab: "forms",
             icon: <ListAltIcon />,
+            label: "Form Testing",
+            show: role === "admin",
+          },
+          {
+            tab: "UseForms",
+            icon: <DownloadIcon />,
             label: "Forms",
             show: role === "admin",
           },
@@ -658,10 +666,19 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
           ) : activeTab === "forms" ? (
             <Box sx={{ p: 3 }}>
               <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-                Saved Forms
+                Test Forms
               </Typography>
               {activeTab === "forms" && (
                 <SavedForms setActiveTab={setActiveTab} />
+              )}
+            </Box>
+          ) : activeTab === "UseForms" ? (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+                Available Forms
+              </Typography>
+              {activeTab === "UseForms" && (
+                <UseForms setActiveTab={setActiveTab} />
               )}
             </Box>
           ) : (

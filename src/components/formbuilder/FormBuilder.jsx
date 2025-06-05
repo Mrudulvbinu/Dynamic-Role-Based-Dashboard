@@ -176,7 +176,6 @@ const FormBuilder = ({ setActiveTab }) => {
             shape[field.id] = yup.string().required("This field is required");
         }
       }
-      // Nested fields validation
       field.options?.forEach((option) => {
         option.nestedFields?.forEach((nestedField) => {
           if (nestedField.required) {
@@ -211,12 +210,10 @@ const FormBuilder = ({ setActiveTab }) => {
   const formValues = watch();
 
   const onSubmit = (data) => {
-    // Flatten the nested structure for submission
     const flattenedData = {};
 
     Object.keys(data).forEach((key) => {
       if (key.includes(".nested.")) {
-        // Handle nested fields
         const [parentId, , nestedId] = key.split(".");
         if (!flattenedData[parentId]) {
           flattenedData[parentId] = {
@@ -226,7 +223,6 @@ const FormBuilder = ({ setActiveTab }) => {
         }
         flattenedData[parentId].nested[nestedId] = data[key];
       } else {
-        // Handle regular fields
         flattenedData[key] = data[key];
       }
     });
@@ -981,7 +977,7 @@ const FormBuilder = ({ setActiveTab }) => {
         <Box
           sx={{
             position: "fixed",
-            top: "15%",
+            top: "20%",
             left: "50%",
             transform: "translate(-50%, -50%)",
             bgcolor: "white",
