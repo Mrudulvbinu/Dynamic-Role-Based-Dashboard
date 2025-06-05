@@ -12,7 +12,6 @@ import {
 
 import PrintableForm from "./PrintableForm";
 import DynamicTable from "../DynamicTable";
-import { generatePDF } from "./PdfGenerator";
 
 const SavedForms = ({ setActiveTab }) => {
   const [forms, setForms] = useState([]);
@@ -59,15 +58,6 @@ const SavedForms = ({ setActiveTab }) => {
   const handlePreview = (form) => {
     setSelectedForm(form);
     setOpenLivePreview(true);
-  };
-
-  const handlePrint = async () => {
-    try {
-      await generatePDF(printRef.current, selectedForm?.title);
-      setOpenLivePreview(false);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-    }
   };
 
   const countTotalFields = (fields) => {
@@ -171,9 +161,6 @@ const SavedForms = ({ setActiveTab }) => {
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handlePrint} color="primary" variant="contained">
-            Download PDF
-          </Button>
           <Button onClick={() => setOpenLivePreview(false)}>Close</Button>
         </DialogActions>
       </Dialog>

@@ -10,7 +10,7 @@ import {
   Stack,
 } from "@mui/material";
 import DynamicTable from "../DynamicTable";
-import FormPreview from "./FormPreview";
+import PrintableForm from "./PrintableForm";
 
 const UseForms = ({ setActiveTab }) => {
   const [forms, setForms] = useState([]);
@@ -20,7 +20,13 @@ const UseForms = ({ setActiveTab }) => {
 
   useEffect(() => {
     const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
-    setForms(savedForms);
+    const sanitizedForms = savedForms.map((form) => ({
+      ...form,
+      fields: Array.isArray(form.fields)
+        ? form.fields.filter((field) => field && field.label)
+        : [],
+    }));
+    setForms(sanitizedForms);
   }, []);
 
   const handlePreview = (form) => {
@@ -80,7 +86,7 @@ const UseForms = ({ setActiveTab }) => {
         <DialogTitle>Form Preview</DialogTitle>
         <DialogContent>
           <div ref={printRef}>
-            <FormPreview form={selectedForm} />
+            {selectedForm && <PrintableForm form={selectedForm} />}
           </div>
         </DialogContent>
         <DialogActions>

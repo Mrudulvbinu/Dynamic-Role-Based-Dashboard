@@ -64,7 +64,7 @@ const PillInput = ({ options, onChange }) => {
 
   return (
     <Paper elevation={0} sx={{ p: 1, backgroundColor: "transparent" }}>
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+      <Stack direction="column" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
         {options.map((option, index) => (
           <Box key={index} sx={{ display: "flex", alignItems: "center" }}>
             <Chip
