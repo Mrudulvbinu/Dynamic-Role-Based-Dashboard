@@ -44,7 +44,6 @@ function App() {
               path="/*"
               element={<Dashboard role={userRole} onLogout={handleLogout} />}
             />
-            {/* You still need to allow public form access when logged in */}
             <Route path="form-fill/:id" element={<FormFiller />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>

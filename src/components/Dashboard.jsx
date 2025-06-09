@@ -639,8 +639,6 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                 <Typography sx={{ p: 3 }} variant="h5">
                   Application settings will appear here
                 </Typography>
-
-                {/* Centered Image */}
                 <Box sx={{ display: "flex", justifyContent: "center" }}>
                   <img
                     src={require("../assets/setting.png")}
