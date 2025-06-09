@@ -47,9 +47,15 @@ const UseForms = ({ setActiveTab }) => {
   const tableData = forms.map((form) => ({
     title: form.title,
     actions: (
-      <Stack direction="row" spacing={1}>
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="center"
+        alignItems="center"
+        sx={{ width: "100%" }}
+      >
         <Button
-          variant="contained"
+          variant="outlined"
           color="primary"
           size="small"
           onClick={() => handlePreview(form)}
@@ -57,7 +63,7 @@ const UseForms = ({ setActiveTab }) => {
           Preview
         </Button>
         <Button
-          variant="contained"
+          variant="outlined"
           color="success"
           size="small"
           onClick={() => handleUseForm(form.id)}

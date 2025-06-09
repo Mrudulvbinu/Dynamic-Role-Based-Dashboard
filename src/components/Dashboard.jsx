@@ -282,11 +282,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
         display: "flex",
         flexDirection: "column",
         backdropFilter: "blur(6px)",
-        backgroundColor: "rgba(255, 255, 255, 0.86)",
-        boxShadow: "0 8px 32px rgba(14, 17, 71, 0.37)",
-        borderRight: "4px solid rgba(255, 255, 255, 0.78)",
-        background:
-          "linear-gradient(120deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.89) 100%)",
+        backgroundColor: "rgb(255, 255, 231)",
       }}
     >
       <List sx={{ pt: 0, flexGrow: 1 }}>
@@ -327,7 +323,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                 sx={{
                   mt: tab === "dashboard" ? "64px" : 0,
                   backgroundColor:
-                    activeTab === tab ? "#0059b3" : "transparent",
+                    activeTab === tab ? "#097969" : "transparent",
                   color: activeTab === tab ? "white" : "black",
                   borderRadius: "10px",
                   "&:hover": {
@@ -370,7 +366,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
           onClick={() => setActiveTab("settings")}
           sx={{
             backgroundColor:
-              activeTab === "settings" ? "#0059b3" : "transparent",
+              activeTab === "settings" ? "#097969" : "transparent",
             color: activeTab === "settings" ? "white" : "black",
             borderRadius: "10px",
             "&:hover": {
@@ -411,7 +407,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
       <AppBar
         position="fixed"
         sx={{
-          bgcolor: "#0059b3",
+          bgcolor: "#097969",
           zIndex: (theme) => theme.zIndex.drawer + 1,
           height: "70px",
           boxShadow: "none",
@@ -643,6 +639,18 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                 <Typography sx={{ p: 3 }} variant="h5">
                   Application settings will appear here
                 </Typography>
+
+                {/* Centered Image */}
+                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                  <img
+                    src={require("../assets/setting.png")}
+                    alt="Settings Logo"
+                    style={{
+                      height: "200px",
+                      width: "auto",
+                    }}
+                  />
+                </Box>
               </Card>
             </Box>
           ) : activeTab === "formPlus" ? (

@@ -12,7 +12,7 @@ const DynamicTable = ({ data, columns }) => {
   return (
     <TableContainer component={Paper} sx={{ mt: 2, boxShadow: 3 }}>
       <Table>
-        <TableHead sx={{ bgcolor: "#0059b3" }}>
+        <TableHead sx={{ bgcolor: "#097969" }}>
           <TableRow>
             {columns.map((column) => (
               <TableCell

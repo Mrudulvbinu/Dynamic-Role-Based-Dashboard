@@ -90,11 +90,11 @@ const SavedForms = ({ setActiveTab }) => {
       <Stack
         direction="row"
         spacing={2}
-        justifyContent="flex-start"
+        justifyContent="center"
         alignItems="center"
       >
         <Button
-          variant="contained"
+          variant="outlined"
           color="success"
           size="small"
           onClick={() => handlePreview(form)}
@@ -102,14 +102,14 @@ const SavedForms = ({ setActiveTab }) => {
           Preview
         </Button>
         <Button
-          variant="contained"
+          variant="outlined"
           size="small"
           onClick={() => handleEdit(form.id)}
         >
           Edit
         </Button>
         <Button
-          variant="contained"
+          variant="outlined"
           color="error"
           size="small"
           onClick={() => handleDeleteClick(form.id)}
