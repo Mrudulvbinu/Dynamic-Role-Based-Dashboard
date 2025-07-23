@@ -21,6 +21,8 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
+import Tooltip from "@mui/material/Tooltip";
+
 import {
   ExitToApp,
   Dashboard as DashboardIcon,
@@ -48,11 +50,11 @@ import UseForms from "./formbuilder/UseForms";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-const WIDGET_WIDTH = 4;
-const WIDGET_HEIGHT = 3;
+const WIDGET_WIDTH = 3.7;
+const WIDGET_HEIGHT = 2.2;
 const GRID_COLUMNS = 12;
-const ROW_HEIGHT = 120;
-const CONTAINER_PADDING = [20, 30];
+const ROW_HEIGHT = 80;
+const CONTAINER_PADDING = [20, 20];
 const GRID_MARGIN = [20, 20];
 
 const Dashboard = ({ role = "user", onLogout, user }) => {
@@ -239,167 +241,142 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
   );
 
   const drawerWidth = 230;
+  const collapsedDrawerWidth = 60;
 
   const renderWidgetContent = (widget) => {
     if (!widget) return null;
 
     switch (widget.type) {
       case "status":
-        return <StatusCard {...(widget.config || {})} />;
+        return <StatusCard {...(widget.config || {})} compact />;
       case "chart":
-        return <ChartWidget />;
+        return <ChartWidget compact />;
       case "activity":
-        return <ActivityTable />;
+        return <ActivityTable compact />;
       case "labPie":
-        return <LabResultsPie />;
+        return <LabResultsPie compact />;
       case "labBar":
-        return <LabTrendsBar />;
+        return <LabTrendsBar compact />;
       case "appointmentList":
         return (
           <UpcomingAppointments
+            compact
             appointments={widget.config?.appointments || []}
           />
         );
       case "prescriptionList":
         return (
-          <Prescriptions prescriptions={widget.config?.prescriptions || []} />
+          <Prescriptions
+            compact
+            prescriptions={widget.config?.prescriptions || []}
+          />
         );
       case "patientStatus":
-        return <PatientStatsCard {...(widget.config || {})} />;
+        return <PatientStatsCard {...(widget.config || {})} compact />;
       default:
         return (
-          <Card sx={{ p: 4, height: "100%" }}>
-            <Typography>{widget.name || "Unnamed Widget"}</Typography>
+          <Card sx={{ p: 2, height: "100%" }}>
+            {" "}
+            {/* Reduced padding from p:4 */}
+            <Typography variant="body2">
+              {widget.name || "Unnamed Widget"}
+            </Typography>
           </Card>
         );
     }
   };
 
+  const navItems = [
+    {
+      tab: "dashboard",
+      icon: <DashboardIcon />,
+      label: "Dashboard",
+      show: true,
+    },
+    {
+      tab: "dataTable",
+      icon: <TableChartIcon />,
+      label: "Data Table",
+      show: ["doctor", "patient"].includes(role),
+    },
+    {
+      tab: "formPlus",
+      icon: <NoteAddIcon />,
+      label: "Form+",
+      show: role === "admin",
+    },
+    {
+      tab: "forms",
+      icon: <ListAltIcon />,
+      label: "Form Testing",
+      show: role === "admin",
+    },
+    {
+      tab: "UseForms",
+      icon: <DownloadIcon />,
+      label: "Forms",
+      show: role === "admin",
+    },
+    {
+      tab: "settings",
+      icon: <Settings />,
+      label: "Settings",
+      show: true,
+    },
+  ];
+
   const drawer = (
-    <Box
-      sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backdropFilter: "blur(6px)",
-        backgroundColor: "rgb(255, 255, 231)",
-      }}
-    >
-      <List sx={{ pt: 0, flexGrow: 1 }}>
-        {[
-          { tab: "dashboard", icon: <DashboardIcon />, label: "Dashboard" },
-          {
-            tab: "dataTable",
-            icon: <TableChartIcon />,
-            label: "Data Table",
-            show: ["doctor", "patient"].includes(role),
-          },
-          {
-            tab: "formPlus",
-            icon: <NoteAddIcon />,
-            label: "Form+",
-            show: role === "admin",
-          },
-          {
-            tab: "forms",
-            icon: <ListAltIcon />,
-            label: "Form Testing",
-            show: role === "admin",
-          },
-          {
-            tab: "UseForms",
-            icon: <DownloadIcon />,
-            label: "Forms",
-            show: role === "admin",
-          },
-        ].map(
-          ({ tab, icon, label, show = true }) =>
-            show && (
-              <ListItem
-                key={tab}
-                button={true}
-                selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
+    <List sx={{ height: "100%", pt: 0, px: sidebarOpen ? 1 : 0 }}>
+      {navItems
+        .filter((item) => item.show)
+        .map(({ tab, icon, label }) => (
+          <Tooltip
+            key={tab}
+            title={!sidebarOpen ? label : ""}
+            placement="right"
+          >
+            <ListItem
+              button
+              onClick={() => setActiveTab(tab)}
+              selected={activeTab === tab}
+              sx={{
+                my: 0.5,
+                px: sidebarOpen ? 2 : 1,
+                py: 1,
+                borderRadius: 2,
+                backgroundColor: activeTab === tab ? "#097969" : "transparent",
+                color: activeTab === tab ? "white" : "black",
+                justifyContent: sidebarOpen ? "flex-start" : "center",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  backgroundColor: "#e0f2f1",
+                  color: "black",
+                },
+              }}
+            >
+              <ListItemIcon
                 sx={{
-                  mt: tab === "dashboard" ? "64px" : 0,
-                  backgroundColor:
-                    activeTab === tab ? "#097969" : "transparent",
                   color: activeTab === tab ? "white" : "black",
-                  borderRadius: "10px",
-                  "&:hover": {
-                    backgroundColor: "white",
-                    color: "black",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-                    transform: "scale(1.01)",
-                    "& .MuiListItemIcon-root": {
-                      color: "black",
-                    },
-                  },
-                  transition: "all 0.3s ease",
+                  minWidth: sidebarOpen ? 40 : "unset",
+                  justifyContent: "center",
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    color: activeTab === tab ? "white" : "black",
-                    minWidth: "40px",
-                    transition: "color 0.3s ease",
-                  }}
-                >
-                  {icon}
-                </ListItemIcon>
+                {icon}
+              </ListItemIcon>
+              {sidebarOpen && (
                 <ListItemText
                   primary={label}
                   primaryTypographyProps={{
                     fontWeight: "bold",
                     fontFamily: '"Poppins", sans-serif',
                   }}
+                  sx={{ ml: 1 }}
                 />
-              </ListItem>
-            )
-        )}
-      </List>
-
-      <List sx={{ pb: 2 }}>
-        <ListItem
-          button={true}
-          selected={activeTab === "settings"}
-          onClick={() => setActiveTab("settings")}
-          sx={{
-            backgroundColor:
-              activeTab === "settings" ? "#097969" : "transparent",
-            color: activeTab === "settings" ? "white" : "black",
-            borderRadius: "10px",
-            "&:hover": {
-              backgroundColor: "white",
-              color: "black",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              transform: "scale(1.01)",
-              "& .MuiListItemIcon-root": {
-                color: "black",
-              },
-            },
-            transition: "all 0.3s ease",
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: activeTab === "settings" ? "white" : "black",
-              minWidth: "40px",
-              transition: "color 0.3s ease",
-            }}
-          >
-            <Settings />
-          </ListItemIcon>
-          <ListItemText
-            primary="Settings"
-            primaryTypographyProps={{
-              fontWeight: "bold",
-              fontFamily: '"Poppins", sans-serif',
-            }}
-          />
-        </ListItem>
-      </List>
-    </Box>
+              )}
+            </ListItem>
+          </Tooltip>
+        ))}
+    </List>
   );
 
   return (
@@ -409,69 +386,123 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
         sx={{
           bgcolor: "#097969",
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: "70px",
+          height: { xs: "4rem", sm: "4rem" },
           boxShadow: "none",
         }}
       >
-        <Toolbar sx={{ height: "64px", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Toolbar
+          sx={{
+            height: "100%",
+            justifyContent: "space-between",
+            px: { xs: 1, sm: 2, md: 3 },
+          }}
+        >
+          {/* Left Side */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: { xs: 1, sm: 2 },
+            }}
+          >
             <IconButton
               color="inherit"
               edge="start"
               onClick={handleDrawerToggle}
-              sx={{ mr: 3 }}
+              sx={{
+                transform: sidebarOpen ? "rotate(0deg)" : "rotate(180deg)",
+                transition: "transform 0.3s ease",
+                p: { xs: "0.5rem", sm: "0.75rem" },
+              }}
             >
-              <MenuIcon />
+                <MenuIcon sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }} />
             </IconButton>
+
             <Typography
-              variant="h4"
+              variant="h1"
               sx={{
                 fontFamily: '"Poppins", sans-serif',
                 fontWeight: "bold",
                 color: "#ffffff",
+                fontSize: {
+                  xs: "1rem",
+                  sm: "1.25rem",
+                  md: "1.5rem",
+                },
+                lineHeight: 1.2,
               }}
             >
-              {(role?.charAt(0)?.toUpperCase() + role?.slice(1) || "User") +
-                " Dashboard"}
+              {`${
+                role?.charAt(0)?.toUpperCase() + role?.slice(1) || "User"
+              } Dashboard`}
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+
+          {/* Right Side */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: { xs: 0.5, sm: 1 },
+            }}
+          >
             <Button
               variant="outlined"
               color="inherit"
-              startIcon={<Widgets />}
+              startIcon={
+                <Widgets sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
+              }
               onClick={handleWidgetMenuOpen}
               sx={{
-                borderRadius: "20px",
+                borderRadius: "1rem",
                 textTransform: "none",
                 fontWeight: "bold",
                 transition: "all 0.3s ease",
                 borderWidth: "2px",
                 borderColor: "white",
                 color: "white",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                px: { xs: 0.5, sm: 1.5 }, // Reduced padding on small screens
+                py: { xs: 0.5, sm: 0.75 },
+                minWidth: 0, // Allows button to shrink
+                "& .MuiButton-startIcon": {
+                  mr: { xs: 0, sm: 0.5 }, // No margin on small screens
+                },
                 "&:hover": {
                   backgroundColor: "white",
                   color: "black",
-                  borderWidth: "2px",
-                  borderColor: "white",
                 },
               }}
             >
-              Widgets
+              <Box
+                component="span"
+                sx={{ display: { xs: "none", sm: "inline" } }}
+              >
+                Widgets
+              </Box>
             </Button>
+
             <Menu
               anchorEl={widgetMenuAnchor}
               open={Boolean(widgetMenuAnchor)}
               onClose={handleWidgetMenuClose}
               PaperProps={{
-                style: {
+                sx: {
                   maxHeight: "70vh",
-                  width: "250px",
+                  width: { xs: "90vw", sm: "16rem" },
+                  mt: 0.5,
                 },
+              }}
+              MenuListProps={{
+                sx: { py: 0 },
               }}
             >
               <MenuItem disabled>
-                <Typography variant="subtitle1" fontWeight="bold">
+                <Typography
+                  variant="body1"
+                  fontWeight="bold"
+                  sx={{ fontSize: "0.875rem" }}
+                >
                   Select Widgets
                 </Typography>
               </MenuItem>
@@ -479,39 +510,56 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                 <MenuItem
                   key={widget?.id || Math.random().toString()}
                   onClick={(e) => e.stopPropagation()}
+                  sx={{ py: 0.5 }}
                 >
                   <FormControlLabel
                     control={
                       <Checkbox
+                        size="small"
                         checked={selectedWidgets.includes(widget?.id)}
                         onChange={() => handleToggleWidget(widget?.id)}
                         color="primary"
                       />
                     }
-                    label={widget?.name || "Unnamed Widget"}
-                    sx={{ width: "100%" }}
+                    label={
+                      <Typography
+                        variant="body2"
+                        sx={{ fontSize: "0.8125rem" }}
+                      >
+                        {widget?.name || "Unnamed Widget"}
+                      </Typography>
+                    }
+                    sx={{ width: "100%", m: 0 }}
                   />
                 </MenuItem>
               ))}
             </Menu>
+
             <Button
               variant="outlined"
               color="inherit"
-              startIcon={<ExitToApp />}
+              startIcon={
+                <ExitToApp sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
+              }
               onClick={onLogout}
               sx={{
-                borderRadius: "20px",
+                borderRadius: "1rem",
                 textTransform: "none",
                 fontWeight: "bold",
                 transition: "all 0.3s ease",
                 borderWidth: "2px",
                 borderColor: "white",
                 color: "white",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                px: { xs: 0.5, sm: 1.5 },
+                py: { xs: 0.5, sm: 0.75 },
+                minWidth: 0,
+                "& .MuiButton-startIcon": {
+                  mr: { xs: 0, sm: 0.5 },
+                },
                 "&:hover": {
                   backgroundColor: "white",
                   color: "black",
-                  borderWidth: "2px",
-                  borderColor: "white",
                 },
               }}
             >
@@ -526,47 +574,58 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: "flex" }}>
-        {/* Sidebar */}
-        {sidebarOpen && (
-          <Box
-            component="nav"
-            sx={{
-              width: drawerWidth,
-              flexShrink: 15,
-              transition: "all 0.5s ease",
-            }}
-          >
-            <Drawer
-              variant="persistent"
-              anchor="left"
-              open={sidebarOpen}
-              PaperProps={{
-                sx: {
-                  width: drawerWidth,
-                  top: "60px",
-                  height: "calc(100vh - 60px)",
-                  overflow: "hidden",
-                  borderRight: "none",
-                  background: "transparent",
-                },
-              }}
-            >
-              {drawer}
-            </Drawer>
-          </Box>
-        )}
+      <Box sx={{ display: "flex", position: "relative" }}>
+        {/* Sidebar - Overlay version */}
+        <Drawer
+          variant="permanent"
+          open={sidebarOpen}
+          sx={{
+            width: sidebarOpen ? drawerWidth : collapsedDrawerWidth,
+            flexShrink: 0,
+            whiteSpace: "nowrap",
+            boxSizing: "border-box",
+            "& .MuiDrawer-paper": {
+              width: sidebarOpen ? drawerWidth : collapsedDrawerWidth,
+              transition: "width 0.3s ease",
+              overflowX: "hidden",
+              top: "64px",
+              height: "calc(100vh - 64px)",
+              backgroundColor: "#f0fff0",
+              borderRight: "1px solid #dcdcdc",
+              boxShadow: 3,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
 
-        {/* Main Content */}
+        {/* Overlay when sidebar is open*/}
+        <Box
+          sx={{
+            position: "fixed",
+            top: "64px",
+            left: sidebarOpen ? drawerWidth : 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(64, 64, 64, 0.2)",
+            zIndex: (theme) => theme.zIndex.drawer - 1,
+            pointerEvents: sidebarOpen ? "auto" : "none",
+            opacity: sidebarOpen ? 1 : 0,
+            transition: "opacity 0.3s ease",
+          }}
+          onClick={handleDrawerToggle}
+        />
+
+        {/* Main Content  */}
         <Box
           component="main"
           sx={{
-            flexGrow: 2,
-            marginLeft: sidebarOpen ? `${drawerWidth}px` : 0,
-            width: sidebarOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
+            flexGrow: 1,
+            width: "100%",
             transition: "all 0.3s ease",
             paddingTop: "80px",
             paddingBottom: "40px",
+            backgroundColor: "#fffef7ff",
           }}
         >
           {activeTab === "dashboard" ? (
@@ -620,7 +679,7 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
                       style={{
                         overflow: "hidden",
                         borderRadius: "12px",
-                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
                         transition: "box-shadow 0.3s ease",
                       }}
                     >
@@ -631,20 +690,53 @@ const Dashboard = ({ role = "user", onLogout, user }) => {
               </ResponsiveGridLayout>
             </div>
           ) : activeTab === "settings" ? (
-            <Box sx={{ pr: 7, pl: 7 }}>
-              <Card sx={{ p: 4, height: "100%" }}>
-                <Typography variant="h4" gutterBottom>
+            <Box
+              sx={{ pr: { xs: 2, sm: 4, md: 7 }, pl: { xs: 2, sm: 4, md: 7 } }}
+            >
+              <Card
+                sx={{
+                  p: { xs: 1.5, sm: 2.5, md: 3 },
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography
+                  variant={window.innerWidth < 600 ? "h5" : "h4"}
+                  gutterBottom
+                  sx={{
+                    fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                    mb: { xs: 1, sm: 2 },
+                  }}
+                >
                   Settings
                 </Typography>
-                <Typography sx={{ p: 3 }} variant="h5">
+                <Typography
+                  sx={{
+                    p: { xs: 1, sm: 2 },
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    textAlign: "center",
+                    mb: { xs: 1, sm: 2 },
+                  }}
+                  variant={window.innerWidth < 600 ? "body1" : "h6"}
+                >
                   Application settings will appear here
                 </Typography>
-                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    width: "100%",
+                    maxWidth: "300px",
+                  }}
+                >
                   <img
                     src={require("../assets/setting.png")}
                     alt="Settings Logo"
                     style={{
-                      height: "200px",
+                      height: window.innerWidth < 600 ? "120px" : "160px",
                       width: "auto",
                     }}
                   />

@@ -43,6 +43,7 @@ const Login = ({ onLogin }) => {
     <Box
       sx={{
         height: "100vh",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -56,23 +57,23 @@ const Login = ({ onLogin }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        overflow: "hidden",
-        p: 2,
+        p: { xs: 2, sm: 3, md: 4 },
       }}
     >
       {/* Top-left logo */}
       <Box
         sx={{
           position: "absolute",
-          top: 5,
-          left: 20,
+          top: 16,
+          left: 16,
+          zIndex: 2,
         }}
       >
         <img
           src={require("../assets/icon.png")}
           alt="Hospital Logo"
           style={{
-            height: "120px",
+            height: "80px",
             width: "auto",
           }}
         />
@@ -88,10 +89,11 @@ const Login = ({ onLogin }) => {
           maxWidth: 400,
           position: "relative",
           zIndex: 1,
+          textAlign: "center",
         }}
       >
         <Typography
-          variant="h3"
+          variant="h4"
           sx={{
             mb: 2,
             color: "black",
@@ -99,7 +101,12 @@ const Login = ({ onLogin }) => {
             fontWeight: "bold",
             letterSpacing: "1px",
             textAlign: "center",
-            fontSize: { xs: "2rem", sm: "2.5rem" },
+            fontSize: {
+              xs: "1.4rem",
+              sm: "1.8rem",
+              md: "2rem",
+              lg: "2.2rem",
+            },
           }}
         >
           CABOT HOSPITAL
@@ -107,15 +114,21 @@ const Login = ({ onLogin }) => {
 
         <Card
           sx={{
-            p: 4,
-            width: "100%",
-            borderRadius: "12px",
+            p: { xs: 1, sm: 2, md: 2.2, lg: 2.4 },
+            width: "90%",
+            maxWidth: {
+              xs: 300,
+              sm: 360,
+              md: 380,
+              lg: 400,
+            },
+            borderRadius: "20px",
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
             backgroundColor: "rgba(255, 255, 255, 0.9)",
           }}
         >
           <Typography
-            variant="h5"
+            variant="h6"
             gutterBottom
             align="center"
             sx={{
@@ -182,8 +195,11 @@ const Login = ({ onLogin }) => {
             onClick={handleLogin}
             disabled={!username || !password}
             sx={{
-              py: 1.5,
-              fontSize: "1rem",
+              py: 1,
+              fontSize: {
+                xs: "0.9rem",
+                sm: "1rem",
+              },
               fontWeight: "bold",
               borderRadius: "8px",
               fontFamily: '"Poppins", sans-serif',
